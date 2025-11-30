@@ -1,0 +1,13 @@
+[folders]
+.venv/
+.idea/
+__pycache__/
+instance/
+migrations/
+translations/
+app_configs/
+logs/
+
+[files]
+.env
+messages.pot

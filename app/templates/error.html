@@ -1,0 +1,7 @@
+{% extends "base_example.html" %}
+{% block title %}{{ _('Error') }}{% endblock %}
+{% block content %}
+    <h2>{{ _('An error occurred') }}</h2>
+    <p>{{ _('Something went wrong, please try again later.') }}</p>
+    <p><a href="/">{{ _('Back Home') }}</a></p>
+{% endblock %}

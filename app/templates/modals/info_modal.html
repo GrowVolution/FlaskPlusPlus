@@ -1,0 +1,15 @@
+{% extends "base_modal.html" %}
+
+{% block id %}infoModal{% endblock %}
+
+{% block title %}ℹ️ {{ _("Hint") }} {% endblock %}
+
+{% block body %}
+    <h5 id="infoModalTitle" class="fw-bold"></h5>
+    <p id="infoModalText" class="mb-0"></p>
+    <div id="infoModalBody"></div>
+{% endblock %}
+
+{% block footer %}
+    <button type="button" class="btn btn-success" data-bs-dismiss="modal">{{ _("Understood") }}</button>
+{% endblock %}

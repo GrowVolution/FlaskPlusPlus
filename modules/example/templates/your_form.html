@@ -1,0 +1,107 @@
+{% extends "base_example.html" %}
+
+{% block title %}{{ _("Your Form") }}{% endblock %}
+
+{% block head %}
+    <style>
+        .flashes {
+            list-style: none;
+            padding: 0;
+            margin: 1em 0;
+        }
+
+        .flash {
+            padding: 0.75em 1em;
+            margin-bottom: 0.5em;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .flash.success {
+            background-color: #e6f9ed;
+            color: #146c2e;
+            border: 1px solid #b7e3c1;
+        }
+
+        .flash.error {
+            background-color: #fdecea;
+            color: #b71c1c;
+            border: 1px solid #f5c6cb;
+        }
+
+        .flash.warning {
+            background-color: #fff4e5;
+            color: #8a6d3b;
+            border: 1px solid #ffeeba;
+        }
+
+        .flash.info {
+            background-color: #e8f4fd;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .error {
+            color: #b71c1c;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-left: 0.25em;
+            display: block;
+            padding: 0.25em 0.5em;
+            background: #fdecea;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1>{{ _("Contact") }}</h1>
+
+    {% with msgs = get_flashed_messages(with_categories=True) %}
+        {% if msgs %}
+            <ul class="flashes">
+                {% for category, msg in msgs %}
+                    <li class="flash {{ category }}">{{ msg }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div>
+            <label>{{ form.name.label }}</label>
+            {{ form.name(size=40) }}
+            {% for err in form.name.errors %}<small class="error">{{ err }}</small>{% endfor %}
+        </div>
+
+        <div>
+            <label>{{ form.email.label }}</label>
+            {{ form.email(size=40) }}
+            {% for err in form.email.errors %}<small class="error">{{ err }}</small>{% endfor %}
+        </div>
+
+        <div>
+            <label>{{ form.message.label }}</label>
+            {{ form.message(rows=5, cols=60) }}
+            {% for err in form.message.errors %}<small class="error">{{ err }}</small>{% endfor %}
+        </div>
+
+        <div>
+            <label>{{ form.agree() }} {{ form.agree.label.text }}</label>
+            {% for err in form.agree.errors %}<small class="error">{{ err }}</small>{% endfor %}
+        </div>
+
+        <div>{{ form.submit() }}</div>
+    </form>
+{% endblock %}

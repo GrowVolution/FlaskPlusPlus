@@ -1,0 +1,7 @@
+{% extends "base_example.html" %}
+{% block title %}{{ _('Not found') }}{% endblock %}
+{% block content %}
+    <h2>{{ _('404 - Page not found') }}</h2>
+    <p>{{ _("We are sorry, but the requested page doesn't exist.") }}</p>
+    <p><a href="/">{{ _('Back Home') }}</a></p>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base_modal.html" %}
+
+{% block id %}confirmModal{% endblock %}
+
+{% block title %}{{ _("Confirm") }}{% endblock %}
+
+{% block body %}
+    <p id="dialogConfirmText" class="mb-0"></p>
+{% endblock %}
+
+{% block footer %}
+    <div class="d-flex justify-content-between w-100">
+        <button type="button" class="btn btn-outline-secondary" id="dialogDismissBtn">{{ _("No") }}</button>
+        <button type="button" id="dialogConfirmBtn">{{ _("Yes") }}</button>
+    </div>
+{% endblock %}
