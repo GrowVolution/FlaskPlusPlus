@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" xmlns="http://www.w3.org/1999/html">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,61 +8,43 @@
 
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/themes/triade_green.css') }}">
 
     <title>{% block title %}Flask App{% endblock %}</title>
 
-    <style>
-        :root {
-            --bg-dark: #1e1e1e;
-            --text-dark: #f9f9f9;
-        }
-
-        body.dark {
-            background-color: var(--bg-dark) !important;
-            color: var(--text-dark) !important;
-        }
-
-        body.dark .navbar {
-            background-color: #111 !important;
-        }
-
-        body.dark .navbar .navbar-brand {
-            color: var(--text-dark) !important;
-        }
-
-        body.dark .navbar .nav-link {
-            color: var(--text-dark) !important;
-        }
-
-        body.dark footer,
-        body.dark footer * {
-            color: var(--text-dark) !important;
-        }
-
-        body.dark .navbar-toggler-icon {
-            filter: invert(1);
-        }
-    </style>
-
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/socket.js') }}" type="module"
-            data-socket-domain="{{ request.scheme.replace('http', 'ws') }}://{{ request.host }}"></script>
+            data-socket-domain="{{ request.scheme.replace('http', 'ws') }}://{{ request.host }}">
+    </script>
 
     <script src="{{ url_for('static', filename='js/base.js') }}" type="module"></script>
+
+    <style>
+        .flash {
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 
     {% block head %}{% endblock %}
 </head>
 
-<body class="bg-light text-dark">
+<body class="bg-primary-light">
 
 <header>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom px-3">
+    <nav class="navbar navbar-expand-lg text-light bg-primary px-3 shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">{{ _('My new Flask-App') }}</a>
+            <a class="navbar-brand text-light" href="/">
+                {{ _('My new Flask-App') }}
+            </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarCollapse" aria-controls="navbarCollapse"
@@ -71,29 +53,26 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarCollapse">
+
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2 ms-lg-3">
                     {% for label, href in NAV.items() %}
                         {% include "nav_link.html" with context %}
                     {% endfor %}
                 </div>
-
-                <div class="ms-auto">
-                    <button id="theme-switch" class="btn btn-primary btn-sm">
-                        Dark Mode
-                    </button>
-                </div>
             </div>
-
         </div>
     </nav>
+
     {% include "flashing.html" %}
 </header>
 
-<main class="container py-4" style="min-height: 75vh;">
+
+<main class="d-flex py-4" style="min-height: 100dvh">
     {% block content %}{% endblock %}
 </main>
 
-<footer class="text-center py-3 border-top text-muted small">
+
+<footer class="text-center py-3 text-light small bg-primary">
     &copy; {{ current_year|default(2025) }}
 </footer>
 
@@ -101,31 +80,6 @@
 {% include "modals/confirm_modal.html" %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-    const btn = document.getElementById("theme-switch");
-    const body = document.body;
-
-    if (localStorage.getItem("theme") === "dark") {
-        body.classList.add("dark");
-        btn.textContent = "Light Mode";
-        btn.classList.replace("btn-primary", "btn-light");
-    }
-
-    btn.addEventListener("click", () => {
-        body.classList.toggle("dark");
-
-        if (body.classList.contains("dark")) {
-            localStorage.setItem("theme", "dark");
-            btn.textContent = "Light Mode";
-            btn.classList.replace("btn-primary", "btn-light");
-        } else {
-            localStorage.setItem("theme", "light");
-            btn.textContent = "Dark Mode";
-            btn.classList.replace("btn-light", "btn-primary");
-        }
-    });
-</script>
 
 {% block scripts %}{% endblock %}
 </body>

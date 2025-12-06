@@ -22,6 +22,6 @@ def handle_request():
         return redirect(url_for(f"{NAME}.endpoint"))
 
     if request.method == "POST" and not form.validate():
-        flash(t("Please check your inputs."), "error")
+        flash(t("Please check your inputs."), "danger")
 
     return render_template("your_form.html", form=form)
