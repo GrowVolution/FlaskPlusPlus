@@ -1,15 +1,15 @@
 from pathlib import Path
 from configparser import ConfigParser
 from datetime import datetime
-from colorama import Fore, Style
-from argparse import ArgumentParser
 import subprocess, sys, os, signal
+import typer
 
-root_path = Path(__file__).parent
+root_path = Path(os.getcwd())
 conf_path = root_path / "app_configs"
 logs_path = root_path / "logs"
 
 apps: dict[str, dict] = {}
+args: dict = {}
 
 
 def prepare():
@@ -39,7 +39,7 @@ def _ensure_log_file(app_name: str) -> Path:
 
 
 def _prompt_port(app_name: str, suggested: int) -> tuple[int, int]:
-    print(f"{Fore.MAGENTA}{Style.BRIGHT}Starting {app_name}...{Style.RESET_ALL}")
+    typer.echo(typer.style(f"Starting {app_name}...", fg=typer.colors.MAGENTA, bold=True))
     raw = input(f"On which port do you want this app to run? ({suggested}): ").strip()
     try:
         port = int(raw) if raw else suggested
@@ -58,16 +58,23 @@ def start_app(conf_file: Path, default_port: int, reload: bool = False) -> int:
     app_name = conf_file.stem
     base_env = _env_from_conf(conf_file)
     base_env["APP_NAME"] = app_name
+
     if reload and app_name in apps:
         port = apps[app_name]["port"]
         base_env["DEBUG_MODE"] = apps[app_name].get("debug", "0")
         next_default = port + 1
     else:
-        port, next_default = _prompt_port(app_name, default_port) if args.interactive else (default_port, None)
-        debug = args.debug if args.debug or not args.interactive else _promt_debug()
+        if args["interactive"]:
+            port, next_default = _prompt_port(app_name, default_port)
+            debug = args["debug"] or _promt_debug()
+        else:
+            port, next_default = default_port, None
+            debug = args["debug"]
         base_env["DEBUG_MODE"] = "1" if debug else "0"
+
     base_env["SERVER_PORT"] = str(port)
     log_file = _ensure_log_file(app_name)
+
     proc = subprocess.Popen(
         [
             sys.executable, "-m", "uvicorn",
@@ -80,15 +87,17 @@ def start_app(conf_file: Path, default_port: int, reload: bool = False) -> int:
         env=base_env,
         cwd=str(root_path)
     )
+
     apps[app_name] = {"proc": proc, "port": port, "conf": conf_file, "debug": base_env["DEBUG_MODE"]}
-    print(f"{app_name} is running on http://0.0.0.0:{port}\n")
+
+    typer.echo(f"{app_name} is running on http://0.0.0.0:{port}\n")
     return next_default
 
 
 def stop_app(app_name: str):
     entry = apps.get(app_name)
     if not entry or not entry["proc"]:
-        print(f"{Fore.RED}{Style.BRIGHT}{app_name} is not running.{Style.RESET_ALL}")
+        typer.echo(typer.style(f"{app_name} is not running.", fg=typer.colors.RED, bold=True))
         return
     proc = entry["proc"]
     if proc.poll() is None:
@@ -99,38 +108,38 @@ def stop_app(app_name: str):
             proc.kill()
             proc.wait()
     entry["proc"] = None
-    print(f"{Fore.GREEN}{Style.BRIGHT}{app_name} has been stopped.{Style.RESET_ALL}")
+    typer.echo(typer.style(f"{app_name} has been stopped.", fg=typer.colors.GREEN, bold=True))
 
 
 def reload_app(app_name: str):
     entry = apps.get(app_name)
     if not entry or not entry["proc"]:
-        print(f"{Fore.RED}{Style.BRIGHT}{app_name} is not running.{Style.RESET_ALL}")
+        typer.echo(typer.style(f"{app_name} is not running.", fg=typer.colors.RED, bold=True))
         return
     port = entry["port"] or 5000
     stop_app(app_name)
     start_app(entry["conf"], port, reload=True)
-    print(f"{Fore.GREEN}{Style.BRIGHT}{app_name} has been reloaded.{Style.RESET_ALL}")
+    typer.echo(typer.style(f"{app_name} has been reloaded.", fg=typer.colors.GREEN, bold=True))
 
 
 def restart_app(app_name: str):
     entry = apps.get(app_name)
     if not entry:
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Unknown app: {app_name}{Style.RESET_ALL}")
+        typer.echo(typer.style(f"Unknown app: {app_name}", fg=typer.colors.YELLOW, bold=True))
         return
     port = entry["port"] or 5000
     stop_app(app_name)
     _ = start_app(entry["conf"], port)
 
 
-def shutdown(signum = None, frame = None):
+def shutdown(signum=None, frame=None):
     prefix = "S"
     if signum:
         prefix = f"Handling signal SIG{'INT' if signum == signal.SIGINT else 'TERM'}, s"
-    print(f"\n{Fore.MAGENTA}{Style.BRIGHT}{prefix}hutting down...{Style.RESET_ALL}")
+    typer.echo(typer.style(f"\n{prefix}hutting down...", fg=typer.colors.MAGENTA, bold=True))
     for app in apps:
         stop_app(app)
-    print(f"{Style.BRIGHT}Thank you for playing the game of life... Bye!{Style.RESET_ALL}")
+    typer.echo(typer.style("Thank you for playing the game of life... Bye!", bold=True))
     sys.exit(0)
 
 
@@ -141,34 +150,36 @@ def create_apps():
 
 
 def menu():
-    print("\nChoose an action:\n"
-          "\t1. Reload app\n"
-          "\t2. Restart app\n"
-          "\t3. Stop app\n"
-          "\t4. Start app (if stopped)\n"
-          "\t5. Clear console\n"
-          "\t6. Exit")
+    typer.echo(
+        "\nChoose an action:\n"
+        "\t1. Reload app\n"
+        "\t2. Restart app\n"
+        "\t3. Stop app\n"
+        "\t4. Start app (if stopped)\n"
+        "\t5. Clear console\n"
+        "\t6. Exit"
+    )
 
 
 def current_apps() -> list[str]:
     names = sorted(apps.keys())
     for idx, name in enumerate(names, start=1):
-        status = f"{Fore.GREEN}running{Style.RESET_ALL}" if (
-                apps[name]["proc"] and apps[name]["proc"].poll() is None
-        ) else f"{Fore.RED}stopped{Style.RESET_ALL}"
+        running = apps[name]["proc"] and apps[name]["proc"].poll() is None
+        status = typer.style("running", fg=typer.colors.GREEN) if running else typer.style("stopped", fg=typer.colors.RED)
         port = apps[name]["port"]
         port_s = f":{port}" if port else ""
-        print(f"\t{idx}. {name} [{status}{port_s}]")
+        typer.echo(f"\t{idx}. {name} [{status}{port_s}]")
     return names
 
 
-def main():
+def interactive_main():
     prepare()
-    print(f"\n{Style.BRIGHT}GrowVolution 2025 - App Control Script{Style.RESET_ALL}\n")
-    print(f"{Fore.YELLOW}{Style.BRIGHT}Starting your apps...{Style.RESET_ALL}")
+    typer.echo(typer.style("Flask++ - App Control Script\n", bold=True))
+    typer.echo(typer.style("Starting your apps...", fg=typer.colors.YELLOW, bold=True))
     create_apps()
+
     while True:
-        print("\nYour apps:")
+        typer.echo("\nYour apps:")
         choices = current_apps()
         menu()
         cmd = input("> ").strip()
@@ -179,14 +190,17 @@ def main():
             shutdown()
             sys.exit(0)
         if cmd not in {"1", "2", "3", "4"}:
-            print(f"{Fore.YELLOW}{Style.BRIGHT}Invalid option.{Style.RESET_ALL}")
+            typer.echo(typer.style("Invalid option.", fg=typer.colors.YELLOW, bold=True))
             continue
         if not choices:
-            print(f"{Fore.RED}{Style.BRIGHT}"
-                  "No apps known. Put .conf files into app_configs/ and restart."
-                  f"{Style.RESET_ALL}")
+            typer.echo(typer.style(
+                "No apps known. Put .conf files into app_configs/ and restart.",
+                fg=typer.colors.RED,
+                bold=True
+            ))
             continue
-        print("Choose your target app by its number:")
+
+        typer.echo("Choose your target app by its number:")
         choice_raw = input("> ").strip()
         try:
             idx = int(choice_raw)
@@ -194,10 +208,9 @@ def main():
                 raise ValueError
             chosen_app = choices[idx - 1]
         except ValueError:
-            print(f"{Fore.RED}{Style.BRIGHT}"
-                  f"{choice_raw} is not a valid number."
-                  f"{Style.RESET_ALL}")
+            typer.echo(typer.style(f"{choice_raw} is not a valid number.", fg=typer.colors.RED, bold=True))
             continue
+
         if cmd == "1":
             reload_app(chosen_app)
         elif cmd == "2":
@@ -207,31 +220,31 @@ def main():
         elif cmd == "4":
             entry = apps[chosen_app]
             if entry["proc"] and entry["proc"].poll() is None:
-                print(f"{Fore.RED}{Style.BRIGHT}"
-                      f"{chosen_app} is already running."
-                      f"{Style.RESET_ALL}")
+                typer.echo(typer.style(f"{chosen_app} is already running.", fg=typer.colors.RED, bold=True))
             else:
                 default = entry["port"] or 5000
                 entry["port"] = None
                 _ = start_app(entry["conf"], default)
 
 
-if __name__ == "__main__":
+def run(
+    interactive: bool = typer.Option(False, "-i", "--interactive"),
+    debug: bool = typer.Option(False, "-d", "--debug"),
+    port: int = typer.Option(5000, "-p", "--port"),
+    app: str = typer.Option("app1", "-a", "--app")
+):
+    args["interactive"] = interactive
+    args["debug"] = debug
+    args["port"] = port
+    args["app"] = app
+
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    parser = ArgumentParser()
-    parser.add_argument("-i", "--interactive", action="store_true")
-    parser.add_argument("-d", "--debug", action="store_true")
-    parser.add_argument("-p", "--port", type=int, default=5000)
-    parser.add_argument("-a", "--app", type=str, default='app1')
-
-    args = parser.parse_args()
-    if args.interactive:
-        main()
+    if args["interactive"]:
+        interactive_main()
     else:
-        conf = conf_path / f"{args.app}.conf"
-        start_app(conf, args.port)
-        proc = apps[args.app]["proc"]
+        conf = conf_path / f"{args['app']}.conf"
+        start_app(conf, args["port"])
         while True:
             continue

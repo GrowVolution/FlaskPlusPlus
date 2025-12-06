@@ -3,14 +3,14 @@ from jinja2 import ChoiceLoader, PrefixLoader, FileSystemLoader
 from pathlib import Path
 from importlib import import_module
 from configparser import ConfigParser
-from colorama import Fore, Style
 from functools import wraps
-import os
+import os, typer
 
-from utils.debugger import log, exception
+from ..utils.debugger import log, exception
 
-module_home = Path(__file__).parent
-conf_path = module_home.parent / "app_configs"
+home = Path(os.getcwd())
+module_home = home / "modules"
+conf_path = home / "app_configs"
 
 
 def require_extensions(*extensions):
@@ -22,7 +22,7 @@ def require_extensions(*extensions):
                     log("warn", f"Invalid extension '{ext}'.")
                     continue
 
-                from app.utils import enabled
+                from ..utils import enabled
                 if not enabled(f"EXT_{ext.upper()}"):
                     raise RuntimeError(f"Extension '{ext}' is not enabled.")
             return func(*args, **kwargs)
@@ -41,10 +41,9 @@ def generate_modlib(app_name: str):
     if "modules" not in config:
         config["modules"] = {}
 
-    print(f"\n{Fore.YELLOW}{Style.BRIGHT}"
-          f"Okay, now you can activate your installed modules.\n"
-          f"{Fore.MAGENTA}Default is '0' (deactivated)!"
-          f"{Style.RESET_ALL}")
+    typer.echo("\n" +
+               typer.style("Okay, now you can activate your installed modules.\n", fg=typer.colors.YELLOW, bold=True) +
+               typer.style("Default is '0' (deactivated)!", fg=typer.colors.MAGENTA))
 
     for obj in module_home.iterdir():
         if obj.is_dir() and (obj / "__init__.py").exists():
@@ -53,15 +52,22 @@ def generate_modlib(app_name: str):
                 val = "0"
             config["modules"][obj.name] = val
 
-    set_home = input(f"\n{Fore.YELLOW}{Style.BRIGHT}"
-                     "Do you want to define a home module?"
-                     f"{Style.RESET_ALL} (Y/n): ").lower().strip()
+    set_home = input(
+        "\n" +
+        typer.style("Do you want to define a home module?", fg=typer.colors.YELLOW, bold=True) +
+        " (Y/n): "
+    ).lower().strip()
+
     if set_home not in {"n", "no", "0"}:
-        print(f"{Fore.MAGENTA}{Style.BRIGHT}Okay choose your home module:{Style.RESET_ALL}")
+        typer.echo(typer.style(
+            "Okay choose your home module:",
+            fg=typer.colors.MAGENTA,
+            bold=True
+        ))
 
         choices = list(config["modules"].keys())
         for idx, module in enumerate(choices, start=1):
-            print(f"\t{Style.BRIGHT}{idx}. {module}{Style.RESET_ALL}")
+            typer.echo("\t" + typer.style(f"{idx}. {module}", bold=True))
 
         while True:
             choice = input("> ").strip()
@@ -70,7 +76,11 @@ def generate_modlib(app_name: str):
                 home = choices[choice]
                 break
             except (ValueError, IndexError):
-                print(f"{Fore.RED}{Style.BRIGHT}Invalid input. Try again:{Style.RESET_ALL}")
+                typer.echo(typer.style(
+                    "Invalid input. Try again:",
+                    fg=typer.colors.RED,
+                    bold=True
+                ))
 
         config["modules"]["HOME_MODULE"] = home
 
@@ -126,7 +136,10 @@ def register_modules(app: Flask):
     loaders = []
     if primary_loader:
         loaders.append(primary_loader)
+    loaders.append(FileSystemLoader("templates"))
     loaders.append(PrefixLoader(loader_context))
-    loaders.append(FileSystemLoader(f"app/templates"))
+    loaders.append(
+        FileSystemLoader(str((Path(__file__).parent.parent / "app" / "templates").resolve()))
+    )
 
     app.jinja_loader = ChoiceLoader(loaders)

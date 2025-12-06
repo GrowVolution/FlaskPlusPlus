@@ -2,8 +2,8 @@ from flask import (current_app, has_app_context, has_request_context,
                    request, Response, make_response, redirect)
 from urllib.parse import urlparse, urljoin
 
-from ..utils import enabled
 from ..socket import default_event
+from ...utils import enabled
 
 
 def _t(s: str) -> str:

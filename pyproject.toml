@@ -1,0 +1,46 @@
+[project]
+name = "flaskpp"
+version = "0.1 alpha"
+description = ""
+authors = [
+    { name = "Pierre", email = "pierre@growv-mail.org" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask",
+    "flask-sqlalchemy",
+    "flask-migrate",
+    "flask-socketio",
+    "flask-limiter",
+    "flask-babelplus",
+    "flask-mailman",
+    "flask-security-too",
+    "flask-wtf",
+    "flask-caching",
+    "flask-smorest",
+    "flask-jwt-extended",
+
+    "pymysql",
+    "python-dotenv",
+    "authlib",
+    "uvicorn",
+    "asgiref",
+    "requests",
+    "redis",
+    "pytz",
+    "gitpython",
+
+    "colorama",
+    "typer"
+]
+
+[project.scripts]
+fpp = "flaskpp.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
