@@ -4,7 +4,7 @@ from flask import Flask, current_app
 
 from .data.babel import I18nMessage
 from .utils.translating import t, tn, get_locale
-from utils.debugger import debug_msg
+from ..utils.debugger import debug_msg
 
 
 class DBMergedTranslations(Translations):

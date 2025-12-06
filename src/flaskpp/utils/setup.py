@@ -1,9 +1,9 @@
 from secrets import token_hex
 from pathlib import Path
 from configparser import ConfigParser
-from colorama import init, Fore, Style
+import typer, os
 
-from modules import generate_modlib
+from ..modules import generate_modlib
 
 counting_map = {
     1: "st",
@@ -11,7 +11,7 @@ counting_map = {
     3: "rd"
 }
 
-conf_path = Path(__file__).parent / "app_configs"
+conf_path = Path(os.getcwd()) / "app_configs"
 conf_path.mkdir(exist_ok=True)
 
 
@@ -52,7 +52,7 @@ def base_config():
             "protected_JWT_SECRET_KEY": token_hex(64),
         },
 
-        "features": {
+        "extensions": {
             "default_EXT_SQLALCHEMY": 1,
             "EXT_SOCKET": 0,
             "EXT_BABEL": 0,
@@ -64,6 +64,10 @@ def base_config():
             "EXT_JWT_EXTENDED": 0,
         },
 
+        "features": {
+            "FPP_PROCESSING": 0,
+        },
+
         "dev": {
             "DB_AUTOUPDATE": 0,
         }
@@ -71,26 +75,25 @@ def base_config():
 
 
 def welcome():
-    print( "\n--------------- "
-          f"{Style.BRIGHT}FlaskSkeleton Setup{Style.RESET_ALL} "
-           "---------------\n")
-    print( "Thank your for using our little foundation to build")
-    print( "your new app! We will try our best to get you ready")
-    print( "within the next two minutes. 💚  Start a timer! ;)\n")
-    print(f"        {Fore.CYAN}{Style.BRIGHT}"
-           "~ GrowVolution 2025 - MIT License ~"
-          f"{Style.RESET_ALL}\n")
-    print( "---------------------------------------------------")
-    print( "\n")
+    typer.echo("\n------------------ " +
+               typer.style("Flask++ Setup", bold=True) +
+               " ------------------\n")
+    typer.echo("Thank your for using our little foundation to build")
+    typer.echo("your new app! We will try our best to get you ready")
+    typer.echo("within the next two minutes. 💚  Start a timer! ;)\n")
+    typer.echo("        " +
+               typer.style("~ GrowVolution 2025 - MIT License ~", fg=typer.colors.CYAN, bold=True) +
+               "\n")
+    typer.echo("---------------------------------------------------")
+    typer.echo("\n")
 
 
 def app_name(app_number):
-    ans = input(f"{Style.BRIGHT}Enter the name of your "
-                f"{app_number}{counting_map.get(app_number, 'th')} app: "
-                f"{Style.RESET_ALL}").strip()
+    ans = input(typer.style("Enter the name of your "
+                            f"{app_number}{counting_map.get(app_number, 'th')} app: ",
+                            bold=True)).strip()
     if not ans:
         ans = f"app{app_number}"
-
     return ans
 
 
@@ -104,8 +107,8 @@ def setup_app(app_number):
     if conf_exists:
         config.read(conf)
 
-    print(f"{Fore.YELLOW}{Style.BRIGHT}Okay, let's setup your app config.\n"
-          f"{Fore.MAGENTA}Leave blank to stick with the defaults.{Style.RESET_ALL}")
+    typer.echo(typer.style("Okay, let's setup your app config.\n", fg=typer.colors.YELLOW, bold=True) +
+               typer.style("Leave blank to stick with the defaults.", fg=typer.colors.MAGENTA))
 
     for k, v in base_config().items():
         if k not in config:
@@ -133,14 +136,18 @@ def setup_app(app_number):
 
     generate_modlib(app)
 
-    print(f"{Fore.GREEN}{Style.BRIGHT}"
-          f"Okay, you have successfully created {app}. 🥳"
-          f"{Style.RESET_ALL}\n")
+    typer.echo(typer.style(
+        f"Okay, you have successfully created {app}. 🥳",
+        fg=typer.colors.GREEN, bold=True
+    ) + "\n")
 
-    if (input(f"{Fore.MAGENTA}{Style.BRIGHT}"
-              f"Do you want to register {app} as a service? (y/N): "
-              f"{Style.RESET_ALL}\n").lower().strip() in ["yes", "y", "1"]):
-        from utils.service_registry import register
+    register_q = input(typer.style(
+        f"Do you want to register {app} as a service? (y/N): ",
+        fg=typer.colors.MAGENTA, bold=True
+    ) + "\n").lower().strip()
+
+    if register_q in ["yes", "y", "1"]:
+        from .service_registry import register
         try:
             port_input = input("On which port do you want your service to run? (5000): ").strip()
             port = int(port_input) if port_input else 5000
@@ -148,12 +155,15 @@ def setup_app(app_number):
             port = 5000
         debug = (input("Do you want your service to run in debug mode? (y/N): ")
                  .lower().strip() in ["yes", "y", "1"])
+
         register(app, port, debug)
-        print(f"{Fore.GREEN}{Style.BRIGHT}"
-              f"Okay, you have successfully registered {app} as a service. 🚀"
-              f"{Style.RESET_ALL}\n\n")
+
+        typer.echo(typer.style(
+            f"Okay, you have successfully registered {app} as a service. 🚀",
+            fg=typer.colors.GREEN, bold=True
+        ) + "\n\n")
     else:
-        print()
+        typer.echo("")
 
 
 def setup():
@@ -164,21 +174,19 @@ def setup():
 
     i += 1
     while (input(f"Do you want to create a {i}{counting_map.get(i, 'th')} app? (y/N): ")
-        .lower().strip()) in ["yes", "y", "1"]:
+            .lower().strip()) in ["yes", "y", "1"]:
         setup_app(i)
         i += 1
 
-    print(f"\n---------------- {Style.BRIGHT}Setup complete."
-          f"{Style.RESET_ALL} ----------------\n")
-    print( "You can now run and manage your app(s) with: \n"
-          f"(.venv) {Fore.GREEN}{Style.BRIGHT}python run.py{Style.RESET_ALL}")
-    print( "To create more apps, just run this script again.")
-    print( "The settings of your app(s) can be managed in:\n"
-          f"{Fore.MAGENTA}{Style.BRIGHT}app_configs/*.conf{Style.RESET_ALL}\n")
-    print(f"----------------- {Fore.CYAN}{Style.BRIGHT}"
-          f"Happy coding!{Style.RESET_ALL} -----------------")
-
-
-if __name__ == "__main__":
-    init(autoreset=True)
-    setup()
+    typer.echo(f"\n---------------- " +
+               typer.style("Setup complete.", bold=True) +
+               " ----------------\n")
+    typer.echo("You can now run and manage your app(s) with: \n" +
+               f"(.venv) " + typer.style("python run.py", fg=typer.colors.GREEN, bold=True))
+    typer.echo("To create more apps, just run this script again.")
+    typer.echo("The settings of your app(s) can be managed in:\n" +
+               typer.style("app_configs/*.conf", fg=typer.colors.MAGENTA, bold=True) +
+               "\n")
+    typer.echo("----------------- " +
+               typer.style("Happy coding!", fg=typer.colors.CYAN, bold=True) +
+               " -----------------")

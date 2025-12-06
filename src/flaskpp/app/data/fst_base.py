@@ -11,9 +11,9 @@ user_roles = db.Table(
 fsqla.FsModels.set_db_info(db)
 
 
-class User(db.Model, fsqla.FsUserMixin):
+class UserBase(db.Model, fsqla.FsUserMixin):
     pass
 
 
-class Role(db.Model, fsqla.FsRoleMixin):
+class RoleBase(db.Model, fsqla.FsRoleMixin):
     pass

@@ -1,8 +1,8 @@
 from flask import Blueprint, Flask
 from pathlib import Path
 
+from flaskpp.modules import require_extensions
 from .data import init_models
-from .. import require_extensions
 
 NAME = Path(__file__).parent.name
 bp = Blueprint(NAME, __name__, template_folder="templates", static_folder="static")

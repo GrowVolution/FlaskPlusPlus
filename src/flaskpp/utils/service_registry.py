@@ -2,9 +2,9 @@ from colorama import Fore, Style
 from pathlib import Path
 import os, sys, ctypes
 
-file = Path(__file__).resolve()
-service_path = file.parent.parent / "services"
-service_path.mkdir(parents=True, exist_ok=True)
+home = Path(os.getcwd())
+service_path = home / "services"
+service_path.mkdir(exist_ok=True)
 
 
 def _ensure_admin() -> bool:
@@ -18,7 +18,7 @@ def _ensure_admin() -> bool:
 
 
 def create_service(app_name: str, port: int, debug: bool):
-    enrtrypoint = f"{sys.executable} {str(file.parent.parent / "run.py")} --app {app_name} --port {port} {'--debug' if debug else ''}"
+    enrtrypoint = f"{sys.executable} -m flaskpp run --app {app_name} --port {port} {'--debug' if debug else ''}"
 
     if os.name == "nt":
         service_template = f"""
