@@ -182,7 +182,7 @@ def setup():
                typer.style("Setup complete.", bold=True) +
                " ----------------\n")
     typer.echo("You can now run and manage your app(s) with: \n" +
-               f"(.venv) " + typer.style("python run.py", fg=typer.colors.GREEN, bold=True))
+               typer.style("fpp run [args]", fg=typer.colors.GREEN, bold=True))
     typer.echo("To create more apps, just run this script again.")
     typer.echo("The settings of your app(s) can be managed in:\n" +
                typer.style("app_configs/*.conf", fg=typer.colors.MAGENTA, bold=True) +

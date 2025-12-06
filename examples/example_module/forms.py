@@ -4,7 +4,7 @@ from wtforms.validators import DataRequired, Email, Length
 
 
 class ContactForm(FlaskForm):
-    from app.utils.translating import t
+    from flaskpp.app.utils.translating import t
     name = StringField(t("Name"), validators=[DataRequired(), Length(max=80)])
     email = StringField(t("E-Mail"), validators=[DataRequired(), Email(), Length(max=120)])
     message = TextAreaField(t("Message"), validators=[DataRequired(), Length(max=2000)])

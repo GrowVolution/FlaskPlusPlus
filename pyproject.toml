@@ -1,6 +1,6 @@
 [project]
 name = "flaskpp"
-version = "0.1 alpha"
+version = "0.1.0"
 description = ""
 authors = [
     { name = "Pierre", email = "pierre@growv-mail.org" }
@@ -31,7 +31,6 @@ dependencies = [
     "pytz",
     "gitpython",
 
-    "colorama",
     "typer"
 ]
 

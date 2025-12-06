@@ -1,6 +1,7 @@
-from flask import Blueprint, Flask
+from flask import Blueprint
 from pathlib import Path
 
+from flaskpp import FlaskPP
 from flaskpp.modules import require_extensions
 from .data import init_models
 
@@ -16,7 +17,7 @@ def context_processor():
 
 
 @require_extensions("sqlalchemy")
-def register_module(app: Flask, home: bool):
+def register_module(app: FlaskPP, home: bool):
     if home:
         bp.static_url_path = f"/{NAME}/static"
     else:

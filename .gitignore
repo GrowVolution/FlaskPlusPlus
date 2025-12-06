@@ -7,6 +7,7 @@ migrations/
 translations/
 app_configs/
 logs/
+flaskpp.egg-info/
 
 [files]
 .env

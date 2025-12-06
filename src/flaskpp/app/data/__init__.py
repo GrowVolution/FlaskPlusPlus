@@ -8,7 +8,7 @@ def init_models():
     for file in _package.rglob("*.py"):
         if file.stem == "__init__":
             continue
-        import_module(f"app.data.{file.stem}")
+        import_module(f"flaskpp.app.data.{file.stem}")
 
 
 def commit():

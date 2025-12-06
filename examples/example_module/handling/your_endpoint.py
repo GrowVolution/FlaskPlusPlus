@@ -3,8 +3,8 @@ from flask import flash, redirect, request, url_for, render_template
 from .. import NAME
 from ..forms import ContactForm
 from ..data.your_dataset import YourModel
-from app.utils.translating import t
-from app.data import add_model
+from flaskpp.app.utils.translating import t
+from flaskpp.app.data import add_model
 
 
 def handle_request():
