@@ -1,9 +1,9 @@
 from flask import Blueprint
 
-from app.utils.auto_nav import autonav_route
-from app.utils.translating import t
 from .handling import your_endpoint
 from .utils import render_template
+from flaskpp.app.utils.auto_nav import autonav_route
+from flaskpp.app.utils.translating import t
 
 
 def init_routes(bp: Blueprint):

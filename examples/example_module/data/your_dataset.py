@@ -1,4 +1,4 @@
-from app.extensions import db
+from flaskpp.app.extensions import db
 
 
 class YourModel(db.Model):

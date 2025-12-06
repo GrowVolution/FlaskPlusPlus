@@ -6,7 +6,8 @@ from asgiref.wsgi import WsgiToAsgi
 from pathlib import Path
 import os
 
-from .app.config import CONFIG_MAP, DefaultConfig
+from .app.config import CONFIG_MAP
+from .app.config.default import DefaultConfig
 from .app.utils.processing import handlers
 from .app.i18n import init_i18n
 from .modules import register_modules
@@ -74,7 +75,7 @@ class FlaskPP(Flask):
                                     x_port=count,
                                     x_prefix=count)
 
-        from app.extensions import limiter
+        from .app.extensions import limiter
         limiter.init_app(self)
 
         fpp_processing = enabled("FPP_PROCESSING")
@@ -84,8 +85,8 @@ class FlaskPP(Flask):
         ext_database = enabled("EXT_SQLALCHEMY")
         db_updater = None
         if ext_database:
-            from app.extensions import db, migrate
-            from app.data import init_models
+            from .app.extensions import db, migrate
+            from .app.data import init_models
             db.init_app(self)
             migrate.init_app(self, db)
             init_models()
@@ -94,7 +95,7 @@ class FlaskPP(Flask):
                 db_updater = Thread(target=db_autoupdate, args=(self,))
 
         if enabled("EXT_SOCKET"):
-            from app.extensions import socket
+            from .app.extensions import socket
             socket.init_app(self)
 
             if fpp_processing:
@@ -102,9 +103,9 @@ class FlaskPP(Flask):
                 socket.on_error_default(handlers["handle_socket_error"])
 
         if enabled("EXT_BABEL"):
-            from app.extensions import babel
-            from app.i18n import DBDomain
-            from app.utils.translating import set_locale
+            from .app.extensions import babel
+            from .app.i18n import DBDomain
+            from .app.utils.translating import set_locale
             domain = DBDomain()
             babel.init_app(self, default_domain=domain)
             self.extensions["babel_domain"] = domain
@@ -115,31 +116,31 @@ class FlaskPP(Flask):
                 raise RuntimeError("For EXT_FST EXT_SQLALCHEMY extension must be enabled.")
             from flask_security import SQLAlchemyUserDatastore
 
-            from app.extensions import security, db
-            from app.data.fst_base import UserBase, RoleBase
+            from .app.extensions import security, db
+            from .app.data.fst_base import UserBase, RoleBase
             security.init_app(
                 self,
                 SQLAlchemyUserDatastore(db, UserBase, RoleBase)
             )
 
         if enabled("EXT_AUTHLIB"):
-            from app.extensions import oauth
+            from .app.extensions import oauth
             oauth.init_app(self)
 
         if enabled("EXT_MAILING"):
-            from app.extensions import mailer
+            from .app.extensions import mailer
             mailer.init_app(self)
 
         if enabled("EXT_CACHE"):
-            from app.extensions import cache
+            from .app.extensions import cache
             cache.init_app(self)
 
         if enabled("EXT_API"):
-            from app.extensions import api
+            from .app.extensions import api
             api.init_app(self)
 
         if enabled("EXT_JWT_EXTENDED"):
-            from app.extensions import jwt
+            from .app.extensions import jwt
             jwt.init_app(self)
 
         self.register_blueprint(_fpp_default)
