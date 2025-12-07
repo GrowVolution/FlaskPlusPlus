@@ -10,29 +10,54 @@ On top of that, it features a plug-&-play style **module system**, so you can ju
 ---
 
 ## 💡 Getting Started
-Clone the repo and launch the setup tool:
+If not already done, just install Python 3.10 or higher on your system. Then install Flask++ like every other python package:
 
 ```bash
-cd /path/to/Flask++
-chmod +x setup.sh
-(sudo) ./setup.sh
+pip install flaskpp
 ````
 
-On Windows:
+After that you can simply setup your app with the Flask++ CLI:
 
-```bat
-cd \path\to\Flask++
-setup.bat
+```bash
+mkdir myproject
+cd myproject
+
+fpp init
+
+# If you want to use modules, we recommend to install them before the setup.
+# This will make life even easier, because you won't need to add them to your app config manually.
+
+fpp modules install [-s/--src] path/to/module
+
+# You can also install from remote repositories (e.g. our I18n Manager):
+fpp modules install --src https://github.com/GrowVolution/FPP_i18n_module
+
+fpp setup
+
+# You can run your app(s) interactively:
+fpp run [-i/--interactive]
+# Or straight up:
+fpp run [-a/--app] myapp [-p/--port] 5000 [-d/--debug]
 ```
 
-The setup wizard will guide you through configuration step by step. 🎯
+The setup wizard will guide you through the configuration step by step. 🎯
 Once finished, your first app will be running – in less than the time it takes to make coffee. ☕🔥
+
+Tip: In our [example folder](https://github.com/GrowVolution/FlaskPlusPlus/examples) we do also provide complete setup files for [Windows](https://github.com/GrowVolution/FlaskPlusPlus/examples/fpp_project/setup.bat) and [Linux](https://github.com/GrowVolution/FlaskPlusPlus/examples/fpp_project/setup.sh) servers.
+If your want to use them, just download the file you need into your project folder and do:
+
+```bash
+cd path/to/project
+./setup.[sh|bat]
+```
+
+In this case only on Windows systems you need to install Python before. On Linux systems just run the script as root to ensure python. ✨
 
 ---
 
 ## 🧩 Modules
 
-Inside `modules/*` you’ll find an example module to get you started.
+Inside the example folder you’ll also find an [example module](https://github.com/GrowVolution/FlaskPlusPlus/examples/example_module) to get you started.
 Use it as a template to quickly build your own features. 😉
 
 ---
