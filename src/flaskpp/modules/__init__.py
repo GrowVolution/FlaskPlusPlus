@@ -11,6 +11,7 @@ from ..utils.debugger import log, exception
 home = Path(os.getcwd())
 module_home = home / "modules"
 conf_path = home / "app_configs"
+module_home.mkdir(exist_ok=True)
 
 
 def require_extensions(*extensions):

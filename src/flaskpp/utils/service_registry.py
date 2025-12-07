@@ -1,5 +1,4 @@
 from pathlib import Path
-from colorama import Fore, Style
 import typer, os, sys, ctypes
 
 home = Path(os.getcwd())

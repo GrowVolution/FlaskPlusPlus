@@ -6,6 +6,7 @@ instance/
 migrations/
 translations/
 app_configs/
+services/
 logs/
 flaskpp.egg-info/
 dist/
