@@ -2,7 +2,6 @@ from flask_babelplus import Domain
 from babel.support import Translations
 from flask import Flask, current_app
 
-from flaskpp.utils.debugger import debug_msg
 from flaskpp.app.data.babel import I18nMessage
 from flaskpp.app.utils.translating import t, tn, get_locale
 
@@ -25,20 +24,16 @@ class DBMergedTranslations(Translations):
     def gettext(self, message):
         db_val = self._db_get(message)
         if db_val:
-            debug_msg(f"[i18n] DB hit: {message!r} → {db_val!r}")
             return db_val
         mo_val = self._wrapped.gettext(message)
-        debug_msg(f"[i18n] MO/fallback: {message!r} → {mo_val!r}")
         return mo_val
 
     def ngettext(self, singular, plural, n):
         key = plural if n != 1 else singular
         db_val = self._db_get(key)
         if db_val:
-            debug_msg(f"[i18n] DB plural hit: {key!r} → {db_val!r}")
             return db_val
         mo_val = self._wrapped.ngettext(singular, plural, n)
-        debug_msg(f"[i18n] MO plural: {singular!r}/{plural!r} → {mo_val!r}")
         return mo_val
 
 
@@ -52,7 +47,6 @@ class DBDomain(Domain):
             domain=self.domain or "messages"
         )
 
-        debug_msg(f"domain={self.domain}, locale={locale}, has_wrapped={wrapped is not None}")
         return DBMergedTranslations(wrapped, domain=self.domain, locale=locale)
 
 
