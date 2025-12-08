@@ -1,0 +1,6 @@
+{
+  "name": "Example Module",
+  "description": "Provides a short example on how to get started with Flask++ modules.",
+  "version": "0.2 Beta",
+  "author": "John Doe"
+}

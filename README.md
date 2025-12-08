@@ -38,6 +38,9 @@ fpp setup
 fpp run [-i/--interactive]
 # Or straight up:
 fpp run [-a/--app] myapp [-p/--port] 5000 [-d/--debug]
+
+# For further assistance use:
+fpp --help
 ```
 
 The setup wizard will guide you through the configuration step by step. 🎯
