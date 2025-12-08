@@ -115,8 +115,14 @@ def register_modules(app: Flask):
 
         try:
             mod = import_module(f"modules.{mod_name}")
-        except ModuleNotFoundError:
-            log("error", f"Could not import module '{mod_name}' for app '{app_name}'.")
+        except (ModuleNotFoundError, ManifestError) as e:
+            exception(e, f"Could not import or load module '{mod_name}' for app '{app_name}'.")
+            continue
+
+        try:
+            log("info", f"Registering: {mod}")
+        except ManifestError as e:
+            exception(e, f"Failed to log {mod_name}.__repr__")
             continue
 
         register = getattr(mod, "register_module", None)
@@ -144,3 +150,7 @@ def register_modules(app: Flask):
     )
 
     app.jinja_loader = ChoiceLoader(loaders)
+
+
+class ManifestError(Exception):
+    pass
