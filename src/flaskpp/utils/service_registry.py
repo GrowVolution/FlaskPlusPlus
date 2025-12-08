@@ -17,7 +17,7 @@ def _ensure_admin() -> bool:
     return os.geteuid() == 0
 
 
-def _service_file(app: str):
+def service_file(app: str):
     return service_path / (f"{app}.py" if os.name == "nt" else f"{app}.service")
 
 
@@ -65,7 +65,7 @@ class AppService(win32serviceutil.ServiceFramework):
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AppService)
 """
-        out = _service_file(app_name)
+        out = service_file(app_name)
         out.write_text(template)
 
     else:
@@ -86,7 +86,7 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 """
-        out = _service_file(app_name)
+        out = service_file(app_name)
         out.write_text(template)
         target = Path(f"/etc/systemd/system/{app_name}.service")
         if target.is_symlink() or target.exists():
@@ -108,7 +108,7 @@ def register(app: str,
     create_service(app, port, debug)
 
     if os.name == "nt":
-        f = _service_file(app)
+        f = service_file(app)
         subprocess.run([sys.executable, str(f), "install"], check=False)
         subprocess.run([sys.executable, str(f), "start"], check=False)
     else:
@@ -122,7 +122,7 @@ def register(app: str,
 @registry.command()
 def start(app: str):
     if os.name == "nt":
-        f = _service_file(app)
+        f = service_file(app)
         subprocess.run([sys.executable, str(f), "start"], check=False)
     else:
         subprocess.run(["systemctl", "start", app], check=False)
@@ -133,7 +133,7 @@ def start(app: str):
 @registry.command()
 def stop(app: str):
     if os.name == "nt":
-        f = _service_file(app)
+        f = service_file(app)
         subprocess.run([sys.executable, str(f), "stop"], check=False)
     else:
         subprocess.run(["systemctl", "stop", app], check=False)
@@ -151,14 +151,14 @@ def remove(app: str):
         raise typer.Exit(1)
 
     if os.name == "nt":
-        f = _service_file(app)
+        f = service_file(app)
         subprocess.run([sys.executable, str(f), "stop"], check=False)
         subprocess.run([sys.executable, str(f), "remove"], check=False)
         f.unlink(missing_ok=True)
     else:
         subprocess.run(["systemctl", "stop", app], check=False)
         subprocess.run(["systemctl", "disable", app], check=False)
-        _service_file(app).unlink(missing_ok=True)
+        service_file(app).unlink(missing_ok=True)
         subprocess.run(["systemctl", "daemon-reload"], check=False)
 
     typer.echo(typer.style(f"Service {app} removed.", fg=typer.colors.RED, bold=True))
