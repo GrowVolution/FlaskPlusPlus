@@ -95,12 +95,19 @@ WantedBy=multi-user.target
 
 
 @registry.command()
-def register(app: str,
-             port: int = typer.Option(...),
+def register(app: str = typer.Option(..., "--app", "-a"),
+             port: int = typer.Option(5000, "--port", "-p"),
              debug: bool = typer.Option(False, "--debug", "-d")):
     if not _ensure_admin():
         typer.echo(typer.style(
             "You need admin privileges to register a service.",
+            fg=typer.colors.RED, bold=True
+        ))
+        raise typer.Exit(1)
+
+    if not (app and (home / "app_configs" / f"{app}.conf").exists()):
+        typer.echo(typer.style(
+            "You must specify a valid app to register it.",
             fg=typer.colors.RED, bold=True
         ))
         raise typer.Exit(1)

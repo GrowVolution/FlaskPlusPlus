@@ -8,7 +8,7 @@ from flaskpp.tests import test_config
 
 runner = CliRunner()
 
-"""
+
 def test_fpp_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
@@ -19,7 +19,7 @@ def test_fpp_help():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "Usage" in result.stdout
-"""
+
 
 @patch("flaskpp.cli.subprocess.run")
 def test_fpp_init(mock_run):
