@@ -5,8 +5,8 @@ from flaskpp import FlaskPP
 from flaskpp.modules import require_extensions
 from .data import init_models
 
-NAME = Path(__file__).parent.name
-bp = Blueprint(NAME, __name__, template_folder="templates", static_folder="static")
+NAME = __name__
+bp = Blueprint(NAME, NAME, template_folder="templates", static_folder="static")
 
 
 @bp.context_processor

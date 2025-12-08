@@ -1,6 +1,6 @@
 import os
 
-from ..config import register_config
+from flaskpp.app.config import register_config
 
 
 @register_config('default')
