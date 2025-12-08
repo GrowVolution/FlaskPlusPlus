@@ -1,7 +1,7 @@
 {% extends "base_example.html" %}
 {% block title %}{{ _('Home') }}{% endblock %}
 {% block content %}
-    <div class="d-flex flex-column m-4 align-items-center justify-content-center">
+    <div class="wrapped-center">
         <h2>{{ _('Welcome!') }}</h2>
         <p>{{ _('This is your wonderful new app.') }}</p>
         <img src="{{ url_for(NAME ~ '.static', filename='picture.jpg') }}" alt="{{ _('Picture') }}"

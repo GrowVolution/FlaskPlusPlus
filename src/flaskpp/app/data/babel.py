@@ -1,5 +1,5 @@
-from . import add_model, delete_model, commit
-from ..extensions import db
+from flaskpp.app.data import add_model, delete_model, commit
+from flaskpp.app.extensions import db
 
 
 class I18nMessage(db.Model):

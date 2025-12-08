@@ -6,13 +6,13 @@ from asgiref.wsgi import WsgiToAsgi
 from pathlib import Path
 import os
 
-from .app.config import CONFIG_MAP
-from .app.config.default import DefaultConfig
-from .app.utils.processing import handlers
-from .app.i18n import init_i18n
-from .modules import register_modules
-from .utils import enabled
-from .utils.debugger import start_session, log
+from flaskpp.app.config import CONFIG_MAP
+from flaskpp.app.config.default import DefaultConfig
+from flaskpp.app.utils.processing import handlers
+from flaskpp.app.i18n import init_i18n
+from flaskpp.modules import register_modules
+from flaskpp.utils import enabled
+from flaskpp.utils.debugger import start_session, log
 
 _fpp_default = Blueprint("fpp_default", __name__,
                          static_folder=(Path(__file__).parent / "app" / "static").resolve(),

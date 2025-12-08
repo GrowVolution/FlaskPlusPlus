@@ -1,6 +1,6 @@
 from flask_security.models import fsqla_v3 as fsqla
 
-from ..extensions import db
+from flaskpp.app.extensions import db
 
 user_roles = db.Table(
     "user_roles",

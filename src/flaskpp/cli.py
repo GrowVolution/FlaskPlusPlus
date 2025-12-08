@@ -1,10 +1,10 @@
 from pathlib import Path
 import typer, os, subprocess, sys
 
-from .modules.cli import modules_entry
-from .utils.setup import setup
-from .utils.run import run
-from .utils.service_registry import registry_entry
+from flaskpp.modules.cli import modules_entry
+from flaskpp.utils.setup import setup
+from flaskpp.utils.run import run
+from flaskpp.utils.service_registry import registry_entry
 
 app = typer.Typer(help="Flask++ CLI")
 cli_home = Path(__file__).parent

@@ -1,4 +1,4 @@
-const socketScript = document.getElementById("socketScript");
+const socketScript = document.getElementById("fppSocketScript");
 
 export function connectSocket() {
     const domain = socketScript.dataset.socketDomain;

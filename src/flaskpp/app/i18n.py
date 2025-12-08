@@ -2,9 +2,9 @@ from flask_babelplus import Domain
 from babel.support import Translations
 from flask import Flask, current_app
 
-from .data.babel import I18nMessage
-from .utils.translating import t, tn, get_locale
-from ..utils.debugger import debug_msg
+from flaskpp.utils.debugger import debug_msg
+from flaskpp.app.data.babel import I18nMessage
+from flaskpp.app.utils.translating import t, tn, get_locale
 
 
 class DBMergedTranslations(Translations):

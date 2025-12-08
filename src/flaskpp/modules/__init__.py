@@ -6,7 +6,7 @@ from configparser import ConfigParser
 from functools import wraps
 import os, typer
 
-from ..utils.debugger import log, exception
+from flaskpp.utils.debugger import log, exception
 
 home = Path(os.getcwd())
 module_home = home / "modules"

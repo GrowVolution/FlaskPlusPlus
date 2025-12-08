@@ -1,4 +1,4 @@
-import { socket, emit } from "/static/js/socket.js";
+import { socket, emit } from "/fpp-static/js/socket.js";
 
 const flashContainer = document.getElementById('flashContainer');
 
