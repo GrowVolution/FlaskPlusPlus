@@ -44,7 +44,7 @@ def test_flaskpp_processing_handlers(mock_handlers, mock_i18n, mock_register):
     def enabled_mock(key):
         return key == "FPP_PROCESSING"
 
-    with patch("flaskpp.app_factory.enabled", enabled_mock):
+    with patch("flaskpp.enabled", enabled_mock):
         app = FlaskPP(__name__, "DEFAULT")
 
     assert mock_handlers.__getitem__.call_count >= 3
@@ -53,7 +53,7 @@ def test_flaskpp_processing_handlers(mock_handlers, mock_i18n, mock_register):
 @patch("flaskpp.register_modules")
 @patch("flaskpp.init_i18n")
 def test_flaskpp_asgi(mock_i18n, mock_register):
-    with patch("flaskpp.app_factory.enabled", return_value=False):
+    with patch("flaskpp.enabled", return_value=False):
         app = FlaskPP(__name__, "DEFAULT")
 
     asgi = app.to_asgi()

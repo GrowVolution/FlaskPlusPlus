@@ -13,4 +13,5 @@ dist/
 
 [files]
 .env
+.coverage
 messages.pot

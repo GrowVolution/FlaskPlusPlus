@@ -1,3 +1,4 @@
+from flask import Flask
 from jinja2 import ChoiceLoader, PrefixLoader, FileSystemLoader
 from pathlib import Path
 from importlib import import_module
@@ -5,7 +6,6 @@ from configparser import ConfigParser
 from functools import wraps
 import os, typer
 
-from flaskpp import FlaskPP
 from flaskpp.utils.debugger import log, exception
 
 home = Path(os.getcwd())
@@ -89,7 +89,7 @@ def generate_modlib(app_name: str):
         config.write(f)
 
 
-def register_modules(app: FlaskPP):
+def register_modules(app: Flask):
     app_name = os.getenv("APP_NAME")
     if not app_name:
         raise RuntimeError("Missing app name variable: APP_NAME")
