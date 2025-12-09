@@ -4,13 +4,14 @@ from threading import Thread
 from datetime import datetime
 from asgiref.wsgi import WsgiToAsgi
 from pathlib import Path
-import os
+from importlib import import_module
+import os, json
 
 from flaskpp.app.config import CONFIG_MAP
 from flaskpp.app.config.default import DefaultConfig
 from flaskpp.app.utils.processing import handlers
 from flaskpp.app.i18n import init_i18n
-from flaskpp.modules import register_modules
+from flaskpp.modules import register_modules, ManifestError, ModuleError
 from flaskpp.utils import enabled
 from flaskpp.utils.debugger import start_session, log
 
@@ -75,7 +76,7 @@ class FlaskPP(Flask):
                                     x_port=count,
                                     x_prefix=count)
 
-        from .app.extensions import limiter
+        from flaskpp.app.extensions import limiter
         limiter.init_app(self)
 
         fpp_processing = enabled("FPP_PROCESSING")
@@ -85,8 +86,8 @@ class FlaskPP(Flask):
         ext_database = enabled("EXT_SQLALCHEMY")
         db_updater = None
         if ext_database:
-            from .app.extensions import db, migrate
-            from .app.data import init_models
+            from flaskpp.app.extensions import db, migrate
+            from flaskpp.app.data import init_models
             db.init_app(self)
             migrate.init_app(self, db)
             init_models()
@@ -95,7 +96,7 @@ class FlaskPP(Flask):
                 db_updater = Thread(target=db_autoupdate, args=(self,))
 
         if enabled("EXT_SOCKET"):
-            from .app.extensions import socket
+            from flaskpp.app.extensions import socket
             socket.init_app(self)
 
             if fpp_processing:
@@ -103,9 +104,9 @@ class FlaskPP(Flask):
                 socket.on_error_default(handlers["handle_socket_error"])
 
         if enabled("EXT_BABEL"):
-            from .app.extensions import babel
-            from .app.i18n import DBDomain
-            from .app.utils.translating import set_locale
+            from flaskpp.app.extensions import babel
+            from flaskpp.app.i18n import DBDomain
+            from flaskpp.app.utils.translating import set_locale
             domain = DBDomain()
             babel.init_app(self, default_domain=domain)
             self.extensions["babel_domain"] = domain
@@ -116,31 +117,31 @@ class FlaskPP(Flask):
                 raise RuntimeError("For EXT_FST EXT_SQLALCHEMY extension must be enabled.")
             from flask_security import SQLAlchemyUserDatastore
 
-            from .app.extensions import security, db
-            from .app.data.fst_base import UserBase, RoleBase
+            from flaskpp.app.extensions import security, db
+            from flaskpp.app.data.fst_base import UserBase, RoleBase
             security.init_app(
                 self,
                 SQLAlchemyUserDatastore(db, UserBase, RoleBase)
             )
 
         if enabled("EXT_AUTHLIB"):
-            from .app.extensions import oauth
+            from flaskpp.app.extensions import oauth
             oauth.init_app(self)
 
         if enabled("EXT_MAILING"):
-            from .app.extensions import mailer
+            from flaskpp.app.extensions import mailer
             mailer.init_app(self)
 
         if enabled("EXT_CACHE"):
-            from .app.extensions import cache
+            from flaskpp.app.extensions import cache
             cache.init_app(self)
 
         if enabled("EXT_API"):
-            from .app.extensions import api
+            from flaskpp.app.extensions import api
             api.init_app(self)
 
         if enabled("EXT_JWT_EXTENDED"):
-            from .app.extensions import jwt
+            from flaskpp.app.extensions import jwt
             jwt.init_app(self)
 
         self.register_blueprint(_fpp_default)
@@ -153,3 +154,105 @@ class FlaskPP(Flask):
 
     def to_asgi(self) -> WsgiToAsgi:
         return WsgiToAsgi(self)
+
+
+class Module(Blueprint):
+    from flaskpp.app.extensions import require_extensions
+
+    context = {}
+    extensions = []
+
+    def __init__(self, file: str, import_name: str, required_extensions: list = None):
+        if not "modules." in import_name:
+            raise ModuleError("Modules have to be created in the modules package.")
+
+        self.name = import_name.split(".")[-1]
+        self.import_name = import_name
+        manifest = Path(file).parent / "manifest.json"
+        self.info = self._load_manifest(manifest)
+        self.extensions = required_extensions or []
+        self.context["NAME"] = self.name
+
+        super().__init__(self.name, import_name)
+
+    def __repr__(self):
+        return f"<{self.info['name']} {self.version}> {self.info.get('description', '')}"
+
+    @require_extensions(extensions)
+    def enable(self, app: FlaskPP, home: bool):
+        if home:
+            self.static_url_path = "/static"
+            app.static_url_path = "/app/static"
+        else:
+            self.url_prefix = f"/{self.name}"
+            self.static_url_path = f"/{self.name}/static"
+
+        try:
+            routes = import_module(f"{self.import_name}.routes")
+            init = getattr(routes, "init_routes", None)
+            if not init:
+                raise ImportError("Missing init function in routes.")
+            init(self)
+        except (ModuleNotFoundError, ImportError, TypeError) as e:
+            log("warn", f"Failed to register routes for {self.name}: {e}")
+
+        if "sqlalchemy" in self.extensions:
+            try:
+                data = import_module(f"{self.import_name}.data")
+                init = getattr(data, "init_models", None)
+                if not init:
+                    raise ImportError("Missing init function in data.")
+                init()
+            except (ModuleNotFoundError, ImportError, TypeError) as e:
+                log("warn", f"Failed to initialize models for {self.name}: {e}")
+
+        self.context_processor(lambda: self.context)
+
+    def _load_manifest(self, manifest: Path) -> dict:
+        if not manifest.exists():
+            raise FileNotFoundError(f"Manifest file for {self.name} not found.")
+
+        try:
+            module_data = json.loads(manifest.read_text())
+        except json.decoder.JSONDecodeError:
+            raise ManifestError(f"Invalid format for manifest of {self.name}.")
+
+        if not "name" in module_data:
+            module_data["name"] = self.name
+        else:
+            self.name = module_data["name"]
+
+        if not "description" in module_data:
+            RuntimeWarning(f"Missing description of {module_data['name']}.")
+
+        if not "version" in module_data:
+            raise ManifestError("Module version not defined.")
+
+        if not "author" in module_data:
+            RuntimeWarning(f"Author of {module_data['name']} not defined.")
+
+        return module_data
+
+    @property
+    def version(self) -> str:
+        version_str = self.info.get("version", "").lower().strip()
+        if not version_str:
+            raise ManifestError("Module version not defined.")
+
+        if " " in version_str and not (version_str.endswith("alpha") or version_str.endswith("beta")):
+            raise ManifestError("Invalid version string format.")
+
+        if version_str.startswith("v"):
+            version_str = version_str[1:]
+
+        try:
+            v_numbers = version_str.split(" ")[0].split(".")
+            if len(v_numbers) > 3:
+                raise ManifestError("Too many version numbers.")
+
+            for v_number in v_numbers:
+                int(v_number)
+        except ValueError:
+            raise ManifestError("Invalid version numbers.")
+
+        return version_str
