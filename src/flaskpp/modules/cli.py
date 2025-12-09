@@ -10,12 +10,12 @@ modules = typer.Typer(help="Manage the modules of Flask++ apps.")
 
 @modules.command()
 def install(
-    module: str,
-    src: str = typer.Option(
-        None,
-        "-s", "--src",
-        help="Optional source for your module",
-    )
+        module: str,
+        src: str = typer.Option(
+            None,
+            "-s", "--src",
+            help="Optional source for your module",
+        )
 ):
     if not src:
         raise NotImplementedError("Module hub is not ready yet.")
@@ -43,7 +43,7 @@ def install(
 
 @modules.command()
 def create(
-    module: str
+        module: str
 ):
     module_dst = module_home / module
     if module_dst.exists():
@@ -55,6 +55,15 @@ def create(
             return
         module_dst.unlink()
     module_dst.mkdir(exist_ok=True)
+
+    manifest = creator_templates.module_manifest.format(
+        name=input("Enter the name of your module: "),
+        description=input("Describe your module briefly: "),
+        version=input("Enter the version of your module: "),
+        author=input("Enter your name or nickname: ")
+    )
+    typer.echo(typer.style(f"Writing manifest...", bold=True))
+    (module_dst / "manifest.json").write_text(manifest)
 
     typer.echo(typer.style(f"Creating basic structure...", bold=True))
     (module_dst / "handling").mkdir(exist_ok=True)
@@ -68,36 +77,28 @@ def create(
     templates = module_dst / "templates"
     templates.mkdir(exist_ok=True)
 
-    with open(module_dst / "routes.py", "w") as f:
-        f.write(creator_templates.module_routes)
-
-    with open(module_dst / "utils.py", "w") as f:
-        f.write(creator_templates.module_utils)
-
-    with open(templates / f"index.html", "w") as f:
-        f.write(creator_templates.module_index)
+    (module_dst / "routes.py").write_text(creator_templates.module_routes)
+    (module_dst / "utils.py").write_text(creator_templates.module_utils)
+    (templates / f"index.html").write_text(creator_templates.module_index)
 
     typer.echo(typer.style(f"Setting up requirements...", bold=True))
 
     required = []
     for extension in creator_templates.extensions:
-        require = prompt_yes_no(f"Do you want to use {extension} in this module? (y/N)")
+        require = prompt_yes_no(f"Do you want to use {extension} in this module? (y/N) ")
         if not require:
             continue
-        required.append(extension)
+        required.append(f'"{extension}"')
         if extension == "sqlalchemy":
             data = module_dst / "data"
             data.mkdir(exist_ok=True)
-            with open(data / "__init__.py", "w") as f:
-                f.write(creator_templates.module_data_init)
+            (data / "__init__.py").write_text(creator_templates.module_data_init)
 
-    requirements_str = creator_templates.module_requirements.format(
-        extensions=",\n\t".join(required)
+    (module_dst / "__init__.py").write_text(
+        creator_templates.module_init.format(
+            requirements=",\n\t".join(required)
+        )
     )
-    with open(module_dst / "__init__.py", "w") as f:
-        f.write(creator_templates.module_init.format(
-            requirements=requirements_str
-        ))
 
     typer.echo(typer.style(
         f"Module '{module}' has been successfully created.",

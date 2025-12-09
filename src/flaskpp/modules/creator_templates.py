@@ -12,43 +12,16 @@ extensions = [
 ]
 
 module_init = """
-from flask import Blueprint
-from pathlib import Path
+from flaskpp import Module
 
-from flaskpp import FlaskPP
-
-from .data import init_models
-
-NAME = __name__
-bp = Blueprint(NAME, NAME, template_folder="templates", static_folder="static")
-
-
-@bp.context_processor
-def context_processor():
-    return dict(
-        NAME=NAME
-    )
-
-{ requirements }
-def register_module(app: FlaskPP, home: bool):
-    if home:
-        bp.static_url_path = f"/{NAME}/static"
-    else:
-        bp.url_prefix = f"/{NAME}"
-
-    from .routes import init_routes
-    init_routes(bp)
-
-    app.register_blueprint(bp)
-    init_models()
-
-"""
-
-module_requirements = """
-from flaskpp.modules import require_extensions
-@require_extensions(
-    { extensions }
+module = Module(
+    __file__,
+    __name__,
+    [
+        {requirements}
+    ]
 )
+
 """
 
 module_routes = """
@@ -79,13 +52,11 @@ module_index = """
 {% extends "base_example.html" %}
 {# The base template is natively provided by Flask++. #}
 
-{% block title %}{{ _('Home') }}{% endblock %}
+{% block title %}{{ _('My Module') }}{% endblock %}
 {% block content %}
     <div class="wrapped-center">
         <h2>{{ _('Welcome!') }}</h2>
-        <p>{{ _('This is your wonderful new app.') }}</p>
-        <img src="{{ url_for(NAME ~ '.static', filename='picture.jpg') }}" alt="{{ _('Picture') }}"
-             class="img-fluid rounded mx-auto d-block">
+        <p>{{ _('This is my wonderful new module.') }}</p>
     </div>
 {% endblock %}
 """
@@ -104,4 +75,13 @@ def init_models():
             continue
         import_module(f"modules.{NAME}.data.{file.stem}")
 
+"""
+
+module_manifest = """
+{{
+  "name": "{name}",
+  "description": "{description}",
+  "version": "{version}",
+  "author": "{author}"
+}}
 """
