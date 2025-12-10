@@ -66,7 +66,8 @@ def base_config():
         },
 
         "features": {
-            "FPP_PROCESSING": 0,
+            "default_FPP_PROCESSING": 1,
+            "default_FRONTEND_ENGINE": 1,
         },
 
         "dev": {
