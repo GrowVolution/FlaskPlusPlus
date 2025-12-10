@@ -25,26 +25,13 @@ module = Module(
 """
 
 module_routes = """
-from flask import Blueprint
-
-from .utils import render_template
+from flaskpp import Module
 
 
-def init_routes(bp: Blueprint):
-    @bp.route("/")
+def init_routes(mod: Module):
+    @mod.route("/")
     def index():
-        return render_template("index.html")
-
-"""
-
-module_utils = """
-from flask import render_template as _render_template
-
-from . import NAME
-
-
-def render_template(template: str, **context) -> str:
-    return _render_template(f"{NAME}/{template}", **context)
+        return mod.render_template("index.html")
 
 """
 

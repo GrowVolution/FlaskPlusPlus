@@ -69,6 +69,9 @@ def setup_tailwind():
     if not dest.exists():
         raise TailwindError("Failed to load tailwind cli.")
 
+    if os.name != "nt":
+        os.chmod(dest, 0o755)
+
     (Path(os.getcwd()) / "tailwind.config.js").write_text(tailwind_conf.format(
         app_dir=str((home.parent / "app").resolve())
     ))
