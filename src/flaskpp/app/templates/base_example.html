@@ -7,14 +7,9 @@
     <link rel="icon" href="{{ url_for('fpp_default.static', filename='img/favicon.png') }}" type="image/png">
 
     <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+          href="{{ url_for('fpp_default.static', filename='css/tailwind.css') }}">
 
-    <link rel="stylesheet"
-          href="{{ url_for('fpp_default.static', filename='css/themes/triade_green.css') }}">
-
-    <title>{% block title %}Flask App{% endblock %}</title>
+    <title>{% block title %}Flask++ App{% endblock %}</title>
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
             integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
@@ -28,15 +23,6 @@
     <script src="{{ url_for('fpp_default.static', filename='js/base.js') }}" type="module"></script>
 
     <style>
-        .wrapped-center {
-            display: flex;
-            flex-direction: column;
-            min-height: 100dvh;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1.5rem;
-        }
-
         .flash {
             animation: fadeIn 0.2s ease-in-out;
         }
@@ -50,28 +36,28 @@
     {% block head %}{% endblock %}
 </head>
 
-<body class="bg-primary-light">
+<body class="bg-primary-light min-h-screen flex flex-col">
 
 <header>
-    <nav class="navbar navbar-expand-lg text-light bg-primary px-3 shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand text-light" href="/">
+    <nav class="w-full flex items-center px-3 shadow-sm bg-primary text-light">
+        <div class="w-full flex items-center justify-between">
+            <a class="text-light text-xl font-semibold" href="/">
                 {{ _('My new Flask-App') }}
             </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarCollapse" aria-controls="navbarCollapse"
+            <button class="lg:hidden p-2 rounded border border-light" type="button"
+                    data-collapse-toggle="navbarCollapse" aria-controls="navbarCollapse"
                     aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
+                <span class="block w-5 h-0.5 bg-light mb-1"></span>
+                <span class="block w-5 h-0.5 bg-light mb-1"></span>
+                <span class="block w-5 h-0.5 bg-light"></span>
             </button>
 
-            <div class="collapse navbar-collapse" id="navbarCollapse">
-
-                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-2 ms-lg-3">
-                    {% for label, href in NAV.items() %}
-                        {% include "nav_link.html" with context %}
-                    {% endfor %}
-                </div>
+            <div id="navbarCollapse"
+                 class="hidden lg:flex lg:items-center lg:gap-2 lg:ms-3 flex-col lg:flex-row">
+                {% for label, href in NAV.items() %}
+                    {% include "nav_link.html" with context %}
+                {% endfor %}
             </div>
         </div>
     </nav>
@@ -80,31 +66,14 @@
 </header>
 
 
-<main class="flex-grow-1">
+<main class="flex-grow">
     {% block content %}{% endblock %}
 </main>
 
 
-<footer class="text-center py-3 text-light small bg-primary">
+<footer class="text-center py-3 text-light text-sm bg-primary">
     &copy; {{ current_year|default(2025) }}
 </footer>
-
-{% include "modals/info_modal.html" %}
-{% include "modals/confirm_modal.html" %}
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<script type="module">
-    import { showInfo } from "{{ url_for('fpp_default.static', filename='js/base.js') }}";
-
-    showInfo(
-        "{{ _("Our example page") }}",
-        null,
-        `{{ _("This page is based on the example base template of Flask++. If you're new to Flask Development
-        you can find out more about this project on our") }} <a href="https://github.com/GrowVolution/FlaskPlusPlus">
-        Github</a>.`
-    );
-</script>
 
 {% block scripts %}{% endblock %}
 </body>

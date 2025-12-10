@@ -1,31 +1,52 @@
 import { socket, emit } from "/fpp-static/js/socket.js";
 
-const flashContainer = document.getElementById('flashContainer');
 
-const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+function showModal(elem) {
+    elem.classList.remove("hidden");
+    elem.classList.add("flex");
+}
+
+function hideModal(elem) {
+    elem.classList.add("hidden");
+    elem.classList.remove("flex");
+}
+
+function bindModalCloseEvents(modalElem) {
+    modalElem.querySelectorAll("[data-modal-close]").forEach(btn => {
+        btn.addEventListener("click", () => hideModal(modalElem));
+    });
+
+    modalElem.addEventListener("mousedown", (ev) => {
+        if (ev.target === modalElem) hideModal(modalElem);
+    });
+}
+
+document.querySelectorAll("[data-modal]").forEach(modal => {
+    hideModal(modal);
+    bindModalCloseEvents(modal);
+});
+
+
+const confirmModal = document.getElementById('confirmModal');
 const confirmText = document.getElementById('dialogConfirmText');
 const confirmBtn = document.getElementById('dialogConfirmBtn');
 const dismissBtn = document.getElementById('dialogDismissBtn');
 
-const infoModal = new bootstrap.Modal(document.getElementById('infoModal'));
+const infoModal = document.getElementById('infoModal');
 const infoTitle = document.getElementById('infoModalTitle');
 const infoText = document.getElementById('infoModalText');
 const infoBody = document.getElementById('infoModalBody');
 
 
-export function flash(message, category) {
-    flashContainer.innerHTML = `
-    <div class="alert alert-${category} alert-dismissible fade show" role="alert">
-      ${message}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    `
-}
-
-
 export async function confirmDialog(message, category) {
     confirmText.innerHTML = message.replace(/\n/g, "<br>");
-    confirmBtn.className = `btn btn-${category}`;
+    confirmBtn.className =
+        `px-4 py-2 rounded text-white 
+         ${category === 'danger' ? 'bg-red-600 hover:bg-red-700' : ''}
+         ${category === 'success' ? 'bg-green-600 hover:bg-green-700' : ''}
+         ${category === 'info' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+         ${category === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+        `;
 
     return new Promise((resolve) => {
         function onConfirm() {
@@ -41,29 +62,50 @@ export async function confirmDialog(message, category) {
         function cleanup() {
             confirmBtn.removeEventListener('click', onConfirm);
             dismissBtn.removeEventListener('click', onDismiss);
-            confirmModal.hide();
+            hideModal(confirmModal);
         }
 
         confirmBtn.addEventListener('click', onConfirm);
         dismissBtn.addEventListener('click', onDismiss);
 
-        confirmModal.show();
+        showModal(confirmModal);
     });
 }
-
 
 export function showInfo(title, message, html) {
     infoTitle.textContent = title;
     if (message) {
-        infoBody.classList.add('d-none');
-        infoText.classList.remove('d-none')
+        infoBody.classList.add('hidden');
+        infoText.classList.remove('hidden');
         infoText.textContent = message;
     } else {
-        infoText.classList.add('d-none');
-        infoBody.classList.remove('d-none');
+        infoText.classList.add('hidden');
+        infoBody.classList.remove('hidden');
         infoBody.innerHTML = html;
     }
-    infoModal.show();
+
+    showModal(infoModal);
+}
+
+
+const flashContainer = document.getElementById('flashContainer');
+
+export function flash(message, category) {
+    flashContainer.innerHTML = `
+    <div class="flash p-4 mb-3 rounded border-l-4 
+        ${category === 'success' ? 'bg-green-100 border-green-600 text-green-800' : ''}
+        ${category === 'warning' ? 'bg-yellow-100 border-yellow-600 text-yellow-800' : ''}
+        ${category === 'danger' ? 'bg-red-100 border-red-600 text-red-800' : ''}
+        ${category === 'info' ? 'bg-blue-100 border-blue-600 text-blue-800' : ''}
+    ">
+      ${message}
+      <button type="button"
+              class="ml-3 text-xl leading-none cursor-pointer float-right"
+              onclick="this.parentElement.remove()">
+        &times;
+      </button>
+    </div>
+    `
 }
 
 
@@ -88,7 +130,6 @@ export async function _(key) {
         });
     });
 }
-
 
 export async function _n(singular, plural, count) {
     return new Promise((resolve) => {

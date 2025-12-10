@@ -2,9 +2,21 @@
     {% with msgs = get_flashed_messages(with_categories=true) %}
         {% if msgs %}
             {% for cat, msg in msgs %}
-                <div class="alert alert-{{cat}} alert-dismissible flash fade show" role="alert">
-                    {{ msg }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="flash p-4 mb-3 rounded border-l-4
+                    {% if cat == 'success' %} bg-green-100 border-green-600 text-green-800
+                    {% elif cat == 'warning' %} bg-yellow-100 border-yellow-600 text-yellow-800
+                    {% elif cat == 'danger' %} bg-red-100 border-red-600 text-red-800
+                    {% elif cat == 'info' %} bg-blue-100 border-blue-600 text-blue-800
+                    {% else %} bg-gray-100 border-gray-600 text-gray-800
+                    {% endif %}">
+                    <div class="flex justify-between items-start">
+                        <span>{{ msg }}</span>
+                        <button type="button"
+                                class="ml-3 text-xl leading-none cursor-pointer"
+                                onclick="this.parentElement.parentElement.remove()">
+                            &times;
+                        </button>
+                    </div>
                 </div>
             {% endfor %}
         {% endif %}
