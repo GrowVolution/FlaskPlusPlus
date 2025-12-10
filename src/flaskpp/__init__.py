@@ -1,4 +1,4 @@
-from flask import Flask, Blueprint
+from flask import Flask, Blueprint, render_template as _render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 from threading import Thread
 from datetime import datetime
@@ -269,3 +269,6 @@ class Module(Blueprint):
             raise ManifestError("Invalid version numbers.")
 
         return version_str
+
+    def render_template(self, template: str, **context) -> str:
+        return _render_template(f"{self.name}/{template}", **context)

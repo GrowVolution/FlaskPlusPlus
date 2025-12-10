@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -37,44 +37,44 @@
 </head>
 
 <body class="bg-primary-light min-h-screen flex flex-col">
+    <header>
+        <nav class="w-full flex items-center px-3 shadow-sm bg-primary text-light">
+            <div class="w-full flex items-center justify-between">
+                <a class="text-light text-xl font-semibold" href="/">
+                    {{ _('My new Flask-App') }}
+                </a>
 
-<header>
-    <nav class="w-full flex items-center px-3 shadow-sm bg-primary text-light">
-        <div class="w-full flex items-center justify-between">
-            <a class="text-light text-xl font-semibold" href="/">
-                {{ _('My new Flask-App') }}
-            </a>
+                <button class="lg:hidden p-2 rounded border border-light" type="button"
+                        data-collapse-toggle="navbarCollapse" aria-controls="navbarCollapse"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="block w-5 h-0.5 bg-light mb-1"></span>
+                    <span class="block w-5 h-0.5 bg-light mb-1"></span>
+                    <span class="block w-5 h-0.5 bg-light"></span>
+                </button>
 
-            <button class="lg:hidden p-2 rounded border border-light" type="button"
-                    data-collapse-toggle="navbarCollapse" aria-controls="navbarCollapse"
-                    aria-expanded="false" aria-label="Toggle navigation">
-                <span class="block w-5 h-0.5 bg-light mb-1"></span>
-                <span class="block w-5 h-0.5 bg-light mb-1"></span>
-                <span class="block w-5 h-0.5 bg-light"></span>
-            </button>
-
-            <div id="navbarCollapse"
-                 class="hidden lg:flex lg:items-center lg:gap-2 lg:ms-3 flex-col lg:flex-row">
-                {% for label, href in NAV.items() %}
-                    {% include "nav_link.html" with context %}
-                {% endfor %}
+                <div id="navbarCollapse"
+                     class="hidden lg:flex lg:items-center lg:gap-2 lg:ms-3 flex-col lg:flex-row">
+                    {% for label, href in NAV.items() %}
+                        {% include "nav_link.html" with context %}
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    {% include "flashing.html" %}
-</header>
+        {% include "flashing.html" %}
+    </header>
 
+    <main id="main" class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
 
-<main class="flex-grow">
-    {% block content %}{% endblock %}
-</main>
+    <footer class="text-center py-3 text-light text-sm bg-primary">
+        &copy; {{ current_year|default(2025) }}
+    </footer>
 
+    {% include "modals/confirm_modal.html" %}
+    {% include "modals/info_modal.html" %}
 
-<footer class="text-center py-3 text-light text-sm bg-primary">
-    &copy; {{ current_year|default(2025) }}
-</footer>
-
-{% block scripts %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
 </html>

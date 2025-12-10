@@ -32,6 +32,7 @@ node_standalone = {
 
 vite_conf = """
 import {{ defineConfig }} from 'vite'
+import {{ resolve }} from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({{
@@ -40,11 +41,28 @@ export default defineConfig({{
   build: {{
     manifest: true,
     outDir: "{out}",
+    
+    rollupOptions: {{
+      input: {{
+        main: resolve(__dirname, "main.js"),
+      }},
+    }},
   }},
   plugins: [
     tailwindcss(),
   ],
 }})
+"""
+
+vite_main = """
+import { _ } from '/fpp-static/js/base.js'
+
+document.querySelector<HTMLMainElement>('#main')!.innerHTML = `
+  <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
+    <h2 class="text-2xl font-semibold">${_('Welcome!')}</h2>
+    <p class="mt-2">${_('This is your wonderful new app.')}</p>
+  </div>
+`
 """
 
 
@@ -120,6 +138,7 @@ def setup_vite():
         public=str(public),
         out=str(root / "dist")
     ))
+    (root / "main.js").write_text(vite_main)
 
     typer.echo(typer.style("Vite successfully prepared.", fg=typer.colors.GREEN, bold=True))
 
@@ -172,7 +191,7 @@ class Frontend(Blueprint):
         self.url_prefix = "/vite"
         self.route("/<path:path>")(self.serve)
 
-        if enabled("DEBUG"):
+        if enabled("DEBUG_MODE"):
             self.session = requests.Session()
             self.port = int(os.getenv("SERVER_PORT", "5000")) + 1000
             self.server = subprocess.Popen(
@@ -199,7 +218,7 @@ class Frontend(Blueprint):
         self.manifest = load_manifest()
 
     def vite(self, entry: str):
-        if enabled("DEBUG"):
+        if enabled("DEBUG_MODE"):
             return f'<script type="module" src="/vite/{entry}"></script>'
 
         js, css = resolve_entry(self.manifest, entry)
@@ -215,7 +234,7 @@ class Frontend(Blueprint):
         return "\n".join(tags)
 
     def serve(self, path) -> Response:
-        if not enabled("DEBUG"):
+        if not enabled("DEBUG_MODE"):
             dist = Path("vite/dist")
 
             if self.built and not dist.exists():
@@ -236,7 +255,7 @@ class Frontend(Blueprint):
 
     @property
     def built(self) -> bool:
-        return not enabled("DEBUG") and self.build.returncode == 0
+        return not enabled("DEBUG_MODE") and self.build.returncode == 0
 
 
 class ViteError(Exception):
