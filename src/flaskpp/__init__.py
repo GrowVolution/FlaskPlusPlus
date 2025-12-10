@@ -13,7 +13,7 @@ from flaskpp.app.utils.processing import handlers
 from flaskpp.app.i18n import init_i18n
 from flaskpp.modules import register_modules, ManifestError, ModuleError
 from flaskpp.utils import enabled
-from flaskpp.utils.debugger import start_session, log
+from flaskpp.utils.debugger import start_session, log, exception
 
 _fpp_default = Blueprint("fpp_default", __name__,
                          static_folder=(Path(__file__).parent / "app" / "static").resolve(),
@@ -143,6 +143,17 @@ class FlaskPP(Flask):
         if enabled("EXT_JWT_EXTENDED"):
             from flaskpp.app.extensions import jwt
             jwt.init_app(self)
+
+        if enabled("FRONTEND_ENGINE"):
+            from flaskpp.vite import Frontend
+            engine = Frontend()
+            self.context_processor(lambda: {
+                "vite": engine.vite
+            })
+            self.register_blueprint(engine)
+
+        from flaskpp.tailwind import generate_tailwind_css
+        generate_tailwind_css()
 
         self.register_blueprint(_fpp_default)
         register_modules(self)

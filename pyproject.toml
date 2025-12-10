@@ -30,6 +30,7 @@ dependencies = [
     "redis",
     "pytz",
     "gitpython",
+    "tqdm",
 
     "typer"
 ]
