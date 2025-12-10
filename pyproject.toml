@@ -1,6 +1,6 @@
 [project]
 name = "flaskpp"
-version = "0.1.4"
+version = "0.1.7"
 description = "A Flask based framework for fast and easy app creation. Experience the real power of Flask without boilerplate, but therefore a well balanced mix of magic and the default Flask framework."
 authors = [
     { name = "Pierre", email = "pierre@growv-mail.org" }
@@ -53,7 +53,7 @@ flaskpp = [
     "babel.cfg",
     "app/templates/**/*.html",
     "app/static/**/*",
-    "modules/**/*"
+    "vite/package.json"
 ]
 
 [project.optional-dependencies]

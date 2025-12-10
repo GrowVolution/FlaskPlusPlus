@@ -9,16 +9,16 @@ tailwind_cli = {
 }
 
 tailwind_conf = """
-module.exports = {
+module.exports = {{
   content: [
     "{app_dir}/templates/**/*.html",
     "{app_dir}/static/js/**/*.js",
     "./**/templates/**/*.html",
     "./**/static/js/**/*.js",
   ],
-  theme: {},
+  theme: {{}},
   plugins: [],
-}
+}}
 """
 
 
