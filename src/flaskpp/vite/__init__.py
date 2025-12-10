@@ -1,4 +1,5 @@
 from flask import Blueprint, Response, send_from_directory
+from werkzeug.datastructures import Headers
 from pathlib import Path
 from tqdm import tqdm
 from dataclasses import dataclass
@@ -229,7 +230,9 @@ class Frontend(Blueprint):
         if not self.server or self.server.poll() is not None:
             raise ViteError("Frontend server is not running.")
         upstream = self.session.get(f"http://localhost:{self.port}/{path}")
-        return Response(upstream.content, upstream.status_code)
+        response = Response(upstream.content, upstream.status_code)
+        response.headers = Headers(upstream.headers)
+        return response
 
     @property
     def built(self) -> bool:
