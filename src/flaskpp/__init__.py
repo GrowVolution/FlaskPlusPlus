@@ -157,10 +157,8 @@ class FlaskPP(Flask):
 
 
 class Module(Blueprint):
-    from flaskpp.app.extensions import require_extensions
 
     context = {}
-    extensions = []
 
     def __init__(self, file: str, import_name: str, required_extensions: list = None):
         if not "modules." in import_name:
@@ -171,15 +169,19 @@ class Module(Blueprint):
         manifest = Path(file).parent / "manifest.json"
         self.info = self._load_manifest(manifest)
         self.extensions = required_extensions or []
-        self.context["NAME"] = self.name
+        self.context = {
+            "NAME": self.name
+        }
+
+        from flaskpp.app.extensions import require_extensions
+        self.enable = require_extensions(self.extensions)(self._enable)
 
         super().__init__(self.name, import_name)
 
     def __repr__(self):
         return f"<{self.info['name']} {self.version}> {self.info.get('description', '')}"
 
-    @require_extensions(extensions)
-    def enable(self, app: FlaskPP, home: bool):
+    def _enable(self, app: FlaskPP, home: bool):
         if home:
             self.static_url_path = "/static"
             app.static_url_path = "/app/static"
