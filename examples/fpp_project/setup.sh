@@ -123,7 +123,8 @@ fi
 #####################################
 
 fpp init
-fpp modules install example --src ../example_module
+fpp modules create example
+#fpp modules install example --src ../example_module
 #fpp modules install mymodule -s https://github.com/OrgaOrUser/fpp-module
 fpp setup
 fpp run --interactive
