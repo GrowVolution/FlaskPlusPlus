@@ -3,9 +3,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from threading import Thread
 from datetime import datetime
 from asgiref.wsgi import WsgiToAsgi
+from socketio import ASGIApp
 from pathlib import Path
 from importlib import import_module
-import os, json
+import os, json, re
 
 from flaskpp.app.config import CONFIG_MAP
 from flaskpp.app.config.default import DefaultConfig
@@ -95,13 +96,9 @@ class FlaskPP(Flask):
             if enabled("DB_AUTOUPDATE"):
                 db_updater = Thread(target=db_autoupdate, args=(self,))
 
-        if enabled("EXT_SOCKET"):
+        if enabled("EXT_SOCKET") and fpp_processing:
             from flaskpp.app.extensions import socket
-            socket.init_app(self)
-
-            if fpp_processing:
-                socket.on("default_event")(handlers["socket_event_handler"])
-                socket.on_error_default(handlers["handle_socket_error"])
+            socket.on("default_event")(handlers["socket_event_handler"])
 
         if enabled("EXT_BABEL"):
             from flaskpp.app.extensions import babel
@@ -118,10 +115,10 @@ class FlaskPP(Flask):
             from flask_security import SQLAlchemyUserDatastore
 
             from flaskpp.app.extensions import security, db
-            from flaskpp.app.data.fst_base import UserBase, RoleBase
+            from flaskpp.app.data.fst_base import User, Role
             security.init_app(
                 self,
-                SQLAlchemyUserDatastore(db, UserBase, RoleBase)
+                SQLAlchemyUserDatastore(db, User, Role)
             )
 
         if enabled("EXT_AUTHLIB"):
@@ -146,11 +143,11 @@ class FlaskPP(Flask):
 
         if enabled("FRONTEND_ENGINE"):
             from flaskpp.vite import Frontend
-            engine = Frontend()
+            engine = Frontend(self)
             self.context_processor(lambda: {
-                "vite": engine.vite
+                "vite_main": engine.vite
             })
-            self.register_blueprint(engine)
+            self.frontend_engine = engine
 
         from flaskpp.tailwind import generate_tailwind_css
         generate_tailwind_css()
@@ -163,14 +160,22 @@ class FlaskPP(Flask):
         if db_updater:
             db_updater.start()
 
-    def to_asgi(self) -> WsgiToAsgi:
-        return WsgiToAsgi(self)
+        self._asgi_app = None
+
+    def to_asgi(self) -> WsgiToAsgi | ASGIApp:
+        if self._asgi_app is not None:
+            return self._asgi_app
+
+        app = WsgiToAsgi(self)
+        if enabled("EXT_SOCKET"):
+            from flaskpp.app.extensions import socket
+            self._asgi_app = ASGIApp(socket, other_asgi_app=app)
+            return self._asgi_app
+        self._asgi_app = app
+        return app
 
 
 class Module(Blueprint):
-
-    context = {}
-
     def __init__(self, file: str, import_name: str, required_extensions: list = None):
         if not "modules." in import_name:
             raise ModuleError("Modules have to be created in the modules package.")
@@ -179,15 +184,17 @@ class Module(Blueprint):
         self.import_name = import_name
         manifest = Path(file).parent / "manifest.json"
         self.info = self._load_manifest(manifest)
+        self.safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", self.name)
         self.extensions = required_extensions or []
         self.context = {
-            "NAME": self.name
+            "NAME": self.safe_name
         }
+        self.home = False
 
         from flaskpp.app.extensions import require_extensions
-        self.enable = require_extensions(self.extensions)(self._enable)
+        self.enable = require_extensions(*self.extensions)(self._enable)
 
-        super().__init__(self.name, import_name)
+        super().__init__(self.safe_name, import_name)
 
     def __repr__(self):
         return f"<{self.info['name']} {self.version}> {self.info.get('description', '')}"
@@ -196,9 +203,10 @@ class Module(Blueprint):
         if home:
             self.static_url_path = "/static"
             app.static_url_path = "/app/static"
+            self.home = True
         else:
-            self.url_prefix = f"/{self.name}"
-            self.static_url_path = f"/{self.name}/static"
+            self.url_prefix = f"/{self.safe_name}"
+            self.static_url_path = f"/{self.safe_name}/static"
 
         try:
             routes = import_module(f"{self.import_name}.routes")
@@ -219,7 +227,14 @@ class Module(Blueprint):
             except (ModuleNotFoundError, ImportError, TypeError) as e:
                 log("warn", f"Failed to initialize models for {self.name}: {e}")
 
+        if enabled("FRONTEND_ENGINE"):
+            from flaskpp.vite import Frontend
+            engine = Frontend(self)
+            self.context["vite"] = engine.vite
+            self.frontend_engine = engine
+
         self.context_processor(lambda: self.context)
+        app.register_blueprint(self)
 
     def _load_manifest(self, manifest: Path) -> dict:
         if not manifest.exists():
@@ -271,4 +286,5 @@ class Module(Blueprint):
         return version_str
 
     def render_template(self, template: str, **context) -> str:
-        return _render_template(f"{self.name}/{template}", **context)
+        render_name = template if self.home else f"{self.safe_name}/{template}"
+        return _render_template(render_name, **context)

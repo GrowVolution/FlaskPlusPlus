@@ -1,4 +1,4 @@
-import os, string, random
+import os, string, random, socket
 
 
 def random_code(length: int = 6) -> str:
@@ -14,3 +14,13 @@ def prompt_yes_no(question: str) -> bool:
 
 def enabled(key: str) -> bool:
     return os.getenv(key, "false").lower() in ["true", "1", "yes"]
+
+
+def is_port_free(port, host="127.0.0.1") -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        try:
+            s.bind((host, port))
+            return True
+        except OSError:
+            return False

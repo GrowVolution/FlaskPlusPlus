@@ -1,24 +1,27 @@
 <div id="{% block id %}{% endblock %}"
-     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm px-4"
      aria-hidden="true">
 
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4">
-        <div class="flex items-center justify-between border-b px-4 py-3">
-            <h5 class="text-lg font-semibold">{% block title %}{% endblock %}</h5>
+    <div class="w-full max-w-lg rounded-xl bg-white shadow-xl ring-1 ring-black/5 animate-[fadeIn_0.2s_ease-out]">
+        <div class="flex items-center justify-between px-5 py-4 border-b">
+            <h5 class="text-lg font-semibold text-slate-800">
+                {% block title %}{% endblock %}
+            </h5>
+
             <button type="button"
-                    class="text-gray-500 hover:text-gray-700 text-xl leading-none"
-                    onclick="this.closest('[id]').classList.add('hidden')">
+                    class="text-slate-400 hover:text-slate-700 transition text-xl leading-none"
+                    onclick="this.closest('[id]').classList.add('hidden')"
+                    aria-label="Close">
                 &times;
             </button>
         </div>
 
-        <div class="px-4 py-4">
+        <div class="px-5 py-4 text-sm text-slate-700 leading-relaxed">
             {% block body %}{% endblock %}
         </div>
 
-        <div class="border-t px-4 py-3 flex justify-end gap-2">
+        <div class="flex justify-end gap-2 px-5 py-3 border-t bg-slate-50 rounded-b-xl">
             {% block footer %}{% endblock %}
         </div>
     </div>
-
 </div>

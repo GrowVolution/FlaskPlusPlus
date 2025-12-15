@@ -8,19 +8,23 @@
 
     <link rel="stylesheet"
           href="{{ url_for('fpp_default.static', filename='css/tailwind.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('fpp_default.static', filename='css/tailwind_fpp.css') }}">
 
     <title>{% block title %}Flask++ App{% endblock %}</title>
 
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
-            integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
-            crossorigin="anonymous">
-    </script>
-    <script id="fppSocketScript"
-            src="{{ url_for('fpp_default.static', filename='js/socket.js') }}" type="module"
-            data-socket-domain="{{ request.scheme.replace('http', 'ws') }}://{{ request.host }}">
-    </script>
+    {% if enabled("EXT_SOCKET") %}
+        <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+                integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+                crossorigin="anonymous">
+        </script>
+        <script id="fppSocketScript"
+                src="{{ url_for('fpp_default.static', filename='js/socket.js') }}" type="module"
+                data-socket-domain="{{ request.scheme.replace('http', 'ws') }}://{{ request.host }}">
+        </script>
 
-    <script src="{{ url_for('fpp_default.static', filename='js/base.js') }}" type="module"></script>
+        <script src="{{ url_for('fpp_default.static', filename='js/base.js') }}" type="module"></script>
+    {% endif %}
 
     <style>
         .flash {
@@ -36,24 +40,28 @@
     {% block head %}{% endblock %}
 </head>
 
-<body class="bg-primary-light min-h-screen flex flex-col">
-    <header>
-        <nav class="w-full flex items-center px-3 shadow-sm bg-primary text-light">
-            <div class="w-full flex items-center justify-between">
-                <a class="text-light text-xl font-semibold" href="/">
+<body class="min-h-screen flex flex-col bg-gradient-to-br from-primary-light via-white to-primary-light text-slate-800">
+    <header class="sticky top-0 z-50">
+        <nav class="w-full bg-primary text-light shadow-md">
+            <div class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+                <a class="text-xl font-semibold tracking-tight hover:opacity-90 transition"
+                   href="/">
                     {{ _('My new Flask-App') }}
                 </a>
 
-                <button class="lg:hidden p-2 rounded border border-light" type="button"
-                        data-collapse-toggle="navbarCollapse" aria-controls="navbarCollapse"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="lg:hidden p-2 rounded-md border border-light/40 hover:bg-light/10 transition"
+                        type="button"
+                        data-collapse-toggle="navbarCollapse"
+                        aria-controls="navbarCollapse"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation">
                     <span class="block w-5 h-0.5 bg-light mb-1"></span>
                     <span class="block w-5 h-0.5 bg-light mb-1"></span>
                     <span class="block w-5 h-0.5 bg-light"></span>
                 </button>
 
                 <div id="navbarCollapse"
-                     class="hidden lg:flex lg:items-center lg:gap-2 lg:ms-3 flex-col lg:flex-row">
+                     class="hidden lg:flex items-center gap-2">
                     {% for label, href in NAV.items() %}
                         {% include "nav_link.html" with context %}
                     {% endfor %}
@@ -64,16 +72,22 @@
         {% include "flashing.html" %}
     </header>
 
-    <main id="main" class="flex-grow">
-        {% block content %}{% endblock %}
+    <main id="main" class="flex-grow flex items-center justify-center px-6 py-12">
+        <div class="w-full max-w-4xl">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
-    <footer class="text-center py-3 text-light text-sm bg-primary">
-        &copy; {{ current_year|default(2025) }}
+    <footer class="mt-auto bg-primary text-light text-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3 text-center opacity-80">
+            &copy; {{ current_year|default(2025) }} – Flask++
+        </div>
     </footer>
 
-    {% include "modals/confirm_modal.html" %}
-    {% include "modals/info_modal.html" %}
+    {% if enabled("EXT_SOCKET") %}
+        {% include "modals/confirm_modal.html" %}
+        {% include "modals/info_modal.html" %}
+    {% endif %}
 
     {% block scripts %}{% endblock %}
 </body>

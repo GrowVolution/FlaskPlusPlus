@@ -175,3 +175,16 @@ socket.on('error', async (message) => {
 
     showInfo(title, `${errMsg}${errLabel} "${message}".`);
 });
+
+
+window.FPP = {
+    confirmDialog: confirmDialog,
+    showInfo: showInfo,
+    flash: flash,
+    safe_: safe_,
+    _: _,
+    _n: _n,
+    socketHtmlInject: socketHtmlInject,
+    socket: socket,
+    emit: emit
+}
