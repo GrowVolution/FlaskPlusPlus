@@ -1,7 +1,5 @@
 # Flask++ Documentation
 
----
-
 ### App Factory
 
 The default Flask app factory hasn't changed much. The FlaskPP class does a lot of repetitive work for you.
