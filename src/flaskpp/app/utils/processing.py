@@ -68,10 +68,10 @@ def socket_event_handler(fn):
     return fn
 
 @socket_event_handler
-def _socket_event_handler(data: dict):
+def _socket_event_handler(sid: str, data: dict):
     event = data["event"]
     payload = data.get("payload")
-    log("request", f"Socket event: {event} - With data: {payload}")
+    log("request", f"Socket event from {sid}: {event} - With data: {payload}")
 
     handler = default_handlers.get(event, no_handler)
     try:

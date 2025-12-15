@@ -141,19 +141,21 @@ class FlaskPP(Flask):
             from flaskpp.app.extensions import jwt
             jwt.init_app(self)
 
+        from flaskpp.tailwind import generate_tailwind_css
+        generate_tailwind_css()
+
+        self.register_blueprint(_fpp_default)
+        self.url_prefix = ""
+        register_modules(self)
+        self.static_url_path = f"{self.url_prefix}/static"
+
         if enabled("FRONTEND_ENGINE"):
-            from flaskpp.vite import Frontend
+            from flaskpp.fpp_node import Frontend
             engine = Frontend(self)
             self.context_processor(lambda: {
                 "vite_main": engine.vite
             })
             self.frontend_engine = engine
-
-        from flaskpp.tailwind import generate_tailwind_css
-        generate_tailwind_css()
-
-        self.register_blueprint(_fpp_default)
-        register_modules(self)
 
         init_i18n(self)
 
@@ -202,7 +204,7 @@ class Module(Blueprint):
     def _enable(self, app: FlaskPP, home: bool):
         if home:
             self.static_url_path = "/static"
-            app.static_url_path = "/app/static"
+            app.url_prefix = "/app"
             self.home = True
         else:
             self.url_prefix = f"/{self.safe_name}"
@@ -228,7 +230,7 @@ class Module(Blueprint):
                 log("warn", f"Failed to initialize models for {self.name}: {e}")
 
         if enabled("FRONTEND_ENGINE"):
-            from flaskpp.vite import Frontend
+            from flaskpp.fpp_node import Frontend
             engine = Frontend(self)
             self.context["vite"] = engine.vite
             self.frontend_engine = engine
