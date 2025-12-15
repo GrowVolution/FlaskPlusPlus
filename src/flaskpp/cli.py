@@ -7,7 +7,9 @@ from flaskpp.utils.setup import setup
 from flaskpp.utils.run import run
 from flaskpp.utils.service_registry import registry_entry
 from flaskpp.tailwind import setup_tailwind
-from flaskpp.vite import load_node, prepare_vite
+from flaskpp.fpp_node import load_node
+from flaskpp.fpp_node.vite import prepare_vite
+from flaskpp.fpp_node.cli import node_entry
 
 app = typer.Typer(help="Flask++ CLI")
 cli_home = Path(__file__).parent
@@ -42,12 +44,14 @@ def main_callback(
             "\tsetup\t\t   - Starts the Flask++ app setup tool. (Can be run multiple times.)\n"
             "\trun\t\t   - The Flask++ native app control. (Using uvicorn.)\n\n"
             "Sub-CLIs:\n\tmodules\t\t   - Manages the modules of Flask++ apps.\n"
-            "\tregistry\t   - Manages the app service registry for you. (Requires admin privileges.)\n\n" +
+            "\tregistry\t   - Manages the app service registry for you. (Requires admin privileges.)\n"
+            "\tnode\t\t   - Allows you to run node commands with the standalone node cli. (" + typer.style("fpp node [npm/npx] [args]", bold=True) + ")\n\n" +
             typer.style("fpp run [args]", bold=True) + "\n"
             "\t-i, --interactive  - Starts all your apps in interactive mode and lets you manage them.\n"
             "\t-a, --app\t   - Specify the name of a specific app, if you don't want to run interactive.\n"
             "\t-p, --port\t   - Specify the port on which your app should listen. (Default is 5000.)\n"
-            "\t-d, --debug\t   - Run your app in debug mode, to get more detailed tracebacks and log debug messages. (Default is False.)\n\n\n" +
+            "\t-d, --debug\t   - Run your app in debug mode, to get more detailed tracebacks and log debug messages. (Default is False.)\n"
+            "\t" + typer.style("If FRONTEND_ENGINE is enabled, vite will run in dev mode. Every module runs its own dev server.", fg=typer.colors.MAGENTA) + "\n\n\n" +
             typer.style("fpp modules [command] [args]", bold=True) + "\n"
             "\tinstall\t\t   - Install a specified Flask++ module.\n"
             "\tcreate\t\t   - Automatically create a new module to make things easier.\n\n" +
@@ -153,6 +157,7 @@ app.command()(run)
 def main():
     modules_entry(app)
     registry_entry(app)
+    node_entry(app)
     app()
 
 
