@@ -51,7 +51,7 @@ def main_callback(
             "\t-a, --app\t   - Specify the name of a specific app, if you don't want to run interactive.\n"
             "\t-p, --port\t   - Specify the port on which your app should listen. (Default is 5000.)\n"
             "\t-d, --debug\t   - Run your app in debug mode, to get more detailed tracebacks and log debug messages. (Default is False.)\n"
-            "\t" + typer.style("If FRONTEND_ENGINE is enabled, vite will run in dev mode. Every module runs its own dev server.", fg=typer.colors.MAGENTA) + "\n\n\n" +
+            "\t\t\t   " + typer.style("If FRONTEND_ENGINE is enabled, vite will run in dev mode. Every module runs its own dev server.", fg=typer.colors.MAGENTA) + "\n\n\n" +
             typer.style("fpp modules [command] [args]", bold=True) + "\n"
             "\tinstall\t\t   - Install a specified Flask++ module.\n"
             "\tcreate\t\t   - Automatically create a new module to make things easier.\n\n" +

@@ -38,7 +38,8 @@ rem -      Flask++ Setup Toolchain       -
 rem --------------------------------------
 
 fpp init
-fpp modules install example --src ..\example_module
+fpp modules create example
+rem fpp modules install example --src ..\example_module
 rem fpp modules install mymodule -s https://github.com/OrgaOrUser/fpp-module
 fpp setup
 fpp run --interactive

@@ -26,6 +26,7 @@ class DefaultConfig:
     # -------------------------------------------------
     # Flask-Limiter (Rate Limiting)
     # -------------------------------------------------
+    RATELIMIT = True
     RATELIMIT_STORAGE_URL = f"{os.getenv('REDIS_URL', 'redis://localhost:6379')}/1"
     RATELIMIT_DEFAULT = "500 per day; 100 per hour"
     RATELIMIT_STRATEGY = "fixed-window"

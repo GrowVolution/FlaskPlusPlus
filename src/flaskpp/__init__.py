@@ -77,8 +77,9 @@ class FlaskPP(Flask):
                                     x_port=count,
                                     x_prefix=count)
 
-        from flaskpp.app.extensions import limiter
-        limiter.init_app(self)
+        if self.config["RATELIMIT"]:
+            from flaskpp.app.extensions import limiter
+            limiter.init_app(self)
 
         fpp_processing = enabled("FPP_PROCESSING")
         if fpp_processing:
