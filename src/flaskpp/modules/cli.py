@@ -78,8 +78,8 @@ def create(
     templates.mkdir(exist_ok=True)
 
     (module_dst / "routes.py").write_text(creator_templates.module_routes)
-    (module_dst / "utils.py").write_text(creator_templates.module_utils)
     (templates / f"index.html").write_text(creator_templates.module_index)
+    (templates / f"vite_index.html").write_text(creator_templates.module_vite_index)
 
     typer.echo(typer.style(f"Setting up requirements...", bold=True))
 
@@ -96,7 +96,7 @@ def create(
 
     (module_dst / "__init__.py").write_text(
         creator_templates.module_init.format(
-            requirements=",\n\t".join(required)
+            requirements=",\n\t\t".join(required)
         )
     )
 

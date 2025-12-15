@@ -4,7 +4,7 @@ from werkzeug.exceptions import NotFound
 from ..utils.translating import get_locale
 from ..utils.auto_nav import nav_links
 from ..socket import default_handlers, no_handler
-from ...utils import random_code
+from ...utils import random_code, enabled
 from ...utils.debugger import log, exception
 
 handlers = {}
@@ -20,6 +20,8 @@ def _context_processor():
         PATH=request.path,
         LANG=get_locale(),
         NAV=nav_links,
+
+        enabled=enabled,
     )
 
 
@@ -72,7 +74,10 @@ def _socket_event_handler(data: dict):
     log("request", f"Socket event: {event} - With data: {payload}")
 
     handler = default_handlers.get(event, no_handler)
-    return handler(payload)
+    try:
+        return handler(payload)
+    except Exception as e:
+        return handlers["handle_socket_error"](e)
 
 
 def handle_socket_error(fn):

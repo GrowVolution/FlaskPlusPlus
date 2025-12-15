@@ -1,13 +1,14 @@
 from flask import Blueprint, Response, send_from_directory
 from werkzeug.datastructures import Headers
+from markupsafe import Markup
 from pathlib import Path
 from tqdm import tqdm
 from dataclasses import dataclass
 from typing import Optional, List, Dict
 from threading import Thread
-import os, platform, requests, typer, subprocess, json, time
+import os, platform, requests, typer, subprocess, json, time, re
 
-from flaskpp.utils import enabled
+from flaskpp.utils import enabled, is_port_free
 
 
 @dataclass
@@ -30,22 +31,35 @@ node_standalone = {
     "win": "https://nodejs.org/dist/v24.11.1/node-v24.11.1-win-{architecture}.zip"
 }
 
+package_json = """
+{
+  "name": "fpp-vite",
+  "version": "0.0.2",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "tailwindcss": "^4.1.17"
+  }
+}
+"""
+
 vite_conf = """
-import {{ defineConfig }} from 'vite'
-import {{ resolve }} from 'path'
-import tailwindcss from '@tailwindcss/vite'
+import {{ defineConfig }} from "vite"
+import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({{
   root: "{root}",
-  publicDir: "{public}",
   build: {{
     manifest: true,
-    outDir: "{out}",
-    
     rollupOptions: {{
-      input: {{
-        main: resolve(__dirname, "main.js"),
-      }},
+      input: "{entry_point}",
     }},
   }},
   plugins: [
@@ -55,15 +69,22 @@ export default defineConfig({{
 """
 
 vite_main = """
-import { _ } from '/fpp-static/js/base.js'
+const _ = window.FPP?._ ?? (async msg => msg)
 
-document.querySelector<HTMLMainElement>('#main')!.innerHTML = `
-  <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
-    <h2 class="text-2xl font-semibold">${_('Welcome!')}</h2>
-    <p class="mt-2">${_('This is your wonderful new app.')}</p>
-  </div>
-`
+const el = document.querySelector('#main')
+if (el) {
+  (async () => {
+    el.innerHTML = `
+      <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
+        <h2 class="text-2xl font-semibold">${await _("Welcome!")}</h2>
+        <p class="mt-2">${await _("This is your wonderful new app.")}</p>
+      </div>
+    `
+  })()
+}
 """
+
+_ports_in_use = []
 
 
 def _get_node_data():
@@ -85,9 +106,12 @@ def load_node():
     data = _get_node_data()
     file_type = "zip" if data[1] == "win" else "tar.xz"
     dest = home / f"node.{file_type}"
+    bin_folder = home / "node"
+
+    if bin_folder.exists():
+        return
 
     typer.echo(typer.style(f"Downloading {data[0]}...", bold=True))
-
     with requests.get(data[0], stream=True) as r:
         r.raise_for_status()
         total = int(r.headers.get("content-length", 0))
@@ -113,14 +137,15 @@ def load_node():
             f.extractall(home)
 
     extracted_folder = home / data[0].split("/")[-1].removesuffix(f".{file_type}")
-    bin_folder = home / "node"
     extracted_folder.rename(bin_folder)
 
     dest.unlink()
 
 
-def setup_vite():
+def prepare_vite():
     typer.echo(typer.style("Setting up vite...", bold=True))
+    (home / "package.json").write_text(package_json)
+
     result = subprocess.run(
         [_node_cmd("npm"), "install"],
         cwd=home
@@ -129,22 +154,11 @@ def setup_vite():
         typer.echo(typer.style("Failed to setup vite.", fg=typer.colors.RED, bold=True))
         return
 
-    root = (Path(os.getcwd()) / "vite").resolve()
-    root.mkdir(exist_ok=True)
-    public = root / "public"
-    public.mkdir(exist_ok=True)
-    (home / "vite.config.js").write_text(vite_conf.format(
-        root=str(root),
-        public=str(public),
-        out=str(root / "dist")
-    ))
-    (root / "main.js").write_text(vite_main)
-
     typer.echo(typer.style("Vite successfully prepared.", fg=typer.colors.GREEN, bold=True))
 
 
-def load_manifest() -> Manifest:
-    manifest_file = Path("vite/dist/.vite/manifest.json")
+def load_manifest(dist: Path) -> Manifest:
+    manifest_file = dist / ".vite" / "manifest.json"
     if not manifest_file.exists():
         raise ViteError("Failed to load Vites manifest.json")
     raw = json.loads(manifest_file.read_text())
@@ -165,12 +179,13 @@ def resolve_entry(manifest: Manifest, entry: str):
 
     visited = set()
     def collect(chunk_name: str):
+        if chunk_name in visited:
+            return
+
         chunk = manifest.get(chunk_name)
         if not chunk:
             return
-        if chunk in visited:
-            return
-        visited.add(chunk)
+        visited.add(chunk_name)
 
         js_files.add(chunk.file)
 
@@ -186,65 +201,85 @@ def resolve_entry(manifest: Manifest, entry: str):
 
 
 class Frontend(Blueprint):
-    def __init__(self):
-        super().__init__("vite", __name__)
-        self.url_prefix = "/vite"
+    from flaskpp import FlaskPP, Module
+    def __init__(self, parent: FlaskPP | Module):
+        super().__init__(f"{parent.name}_vite", parent.import_name)
+        prefix = "/vite"
+        self.url_prefix = prefix
         self.route("/<path:path>")(self.serve)
+        self.prefix = f"{parent.url_prefix}{prefix}" if hasattr(parent, "url_prefix") and parent.url_prefix is not None else prefix
+
+        root = (Path(parent.root_path) / "vite").resolve()
+        root.mkdir(exist_ok=True)
+        public = root / "public"
+        public.mkdir(exist_ok=True)
+        main = root / "main.js"
+        safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", parent.name)
+        conf_name = f"vite.config.{safe_name}.js"
+        (home / conf_name).write_text(vite_conf.format(
+            root=str(root),
+            entry_point=str(main)
+        ))
+        conf_params = ["--config", conf_name]
+        if not main.exists():
+            main.write_text(vite_main)
 
         if enabled("DEBUG_MODE"):
             self.session = requests.Session()
-            self.port = int(os.getenv("SERVER_PORT", "5000")) + 1000
+            self.port = int(os.getenv("SERVER_PORT", "5000")) if len(_ports_in_use) == 0 else _ports_in_use[-1]
+            self.port += 100
+            while not is_port_free(self.port):
+                self.port += 100
+            _ports_in_use.append(self.port)
+
             self.server = subprocess.Popen(
-                [_node_cmd("npm"), "run", "dev", "--port", str(self.port)],
+                [_node_cmd("npm"), "run", "dev", "--", "--port", str(self.port), *conf_params],
                 cwd=home
             )
         else:
             self.build = subprocess.Popen(
-                [_node_cmd("npm"), "run", "build"],
+                [_node_cmd("npm"), "run", "build", "--", *conf_params],
                 cwd=home
             )
+            self.dist = root / "dist"
             self.manifest = None
             self.loader = Thread(target=self._load_manifest)
             self.loader.start()
 
+        parent.register_blueprint(self)
+
     def _load_manifest(self):
-        if not self.built:
-            timer = 0
-            while not self.built:
-                if timer >= 100:
-                    raise ViteError("Vite was not built successfully.")
-                time.sleep(0.1)
-                timer += 1
-        self.manifest = load_manifest()
+        self.build.wait()
+        if self.build.returncode != 0:
+            raise ViteError("Vite build process failed.")
+        self.manifest = load_manifest(self.dist)
 
     def vite(self, entry: str):
         if enabled("DEBUG_MODE"):
-            return f'<script type="module" src="/vite/{entry}"></script>'
+            return Markup(f'<script type="module" src="{self.prefix}/{entry}"></script>')
 
         js, css = resolve_entry(self.manifest, entry)
 
         tags = []
 
         for file in css:
-            tags.append(f'<link rel="stylesheet" href="/vite/{file}">')
+            tags.append(f'<link rel="stylesheet" href="{self.prefix}/{file}">')
 
         for file in js:
-            tags.append(f'<script type="module" src="/vite/{file}"></script>')
+            tags.append(f'<script type="module" src="{self.prefix}/{file}"></script>')
 
-        return "\n".join(tags)
+        return Markup("\n".join(tags))
 
     def serve(self, path) -> Response:
         if not enabled("DEBUG_MODE"):
-            dist = Path("vite/dist")
-
-            if self.built and not dist.exists():
+            if self.built and not self.dist.exists():
                 raise ViteError("Missing vite/dist directory.")
             elif self.loader.is_alive():
                  self.loader.join()
             else:
                 raise ViteError("There was an error while building vite.")
 
-            return send_from_directory(dist.resolve(), path)
+            return send_from_directory(self.dist.resolve(), path)
 
         if not self.server or self.server.poll() is not None:
             raise ViteError("Frontend server is not running.")

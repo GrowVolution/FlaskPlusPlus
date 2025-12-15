@@ -2,18 +2,31 @@
 
 {% block id %}infoModal{% endblock %}
 
-{% block title %}ℹ️ {{ _("Hint") }} {% endblock %}
+{% block title %}ℹ️ {{ _("Hint") }}{% endblock %}
 
 {% block body %}
-    <h5 id="infoModalTitle" class="text-lg font-semibold"></h5>
-    <p id="infoModalText" class="mb-0"></p>
-    <div id="infoModalBody"></div>
+    <h5 id="infoModalTitle"
+        class="text-base font-semibold text-slate-800 mb-2">
+    </h5>
+
+    <p id="infoModalText"
+       class="text-sm text-slate-700 leading-relaxed mb-3">
+    </p>
+
+    <div id="infoModalBody"
+         class="text-sm text-slate-700 space-y-2">
+    </div>
 {% endblock %}
 
 {% block footer %}
     <button type="button"
-            class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
-            data-modal-close>
+            data-modal-close
+            class="inline-flex items-center justify-center
+                   px-4 py-2 rounded-lg
+                   bg-primary text-white text-sm font-medium
+                   hover:bg-primary-dark
+                   focus:outline-none focus:ring-2 focus:ring-primary/40
+                   transition">
         {{ _("Understood") }}
     </button>
 {% endblock %}

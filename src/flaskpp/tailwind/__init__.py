@@ -8,19 +8,6 @@ tailwind_cli = {
     "win": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.17/tailwindcss-windows-x64.exe"
 }
 
-tailwind_conf = """
-module.exports = {{
-  content: [
-    "{app_dir}/templates/**/*.html",
-    "{app_dir}/static/js/**/*.js",
-    "./**/templates/**/*.html",
-    "./**/static/js/**/*.js",
-  ],
-  theme: {{}},
-  plugins: [],
-}}
-"""
-
 
 def _get_cli_data():
     selector = "win" if os.name == "nt" else "linux"
@@ -40,10 +27,26 @@ def _tailwind_cmd():
 
 
 def generate_tailwind_css():
-    css = home.parent / "app" / "static" / "css"
+    app = (home.parent / "app").resolve()
+    css =  app / "static" / "css"
+
+    if not os.getcwd() in str(app):
+        out = css / "tailwind_fpp.css"
+        if not out.exists():
+            result = subprocess.run(
+                [_tailwind_cmd(),
+                 "-i", str(css / "tailwind_raw.css"),
+                 "-o", str(out), "--minify",
+                 "--cwd", str(app)],
+            )
+            if result.returncode != 0:
+                raise TailwindError("Failed to generate tailwind_fpp.css")
+
     result = subprocess.run(
-        [_tailwind_cmd(), "-i", str(css / "tailwind_raw.css"), "-o", str(css / "tailwind.css"), "--watch"],
-        cwd=os.getcwd()
+        [_tailwind_cmd(),
+         "-i", str(css / "tailwind_raw.css"),
+         "-o", str(css / "tailwind.css"), "--minify",
+         "--cwd", os.getcwd()],
     )
     if result.returncode != 0:
         raise TailwindError("Failed to generate tailwind.css")
@@ -54,8 +57,10 @@ def setup_tailwind():
     file_type = ".exe" if data[1] == "win" else ""
     dest = home / f"tailwind{file_type}"
 
-    typer.echo(typer.style(f"Downloading {data[0]}...", bold=True))
+    if dest.exists():
+        return
 
+    typer.echo(typer.style(f"Downloading {data[0]}...", bold=True))
     with requests.get(data[0], stream=True) as r:
         r.raise_for_status()
         total = int(r.headers.get("content-length", 0))
@@ -70,11 +75,7 @@ def setup_tailwind():
         raise TailwindError("Failed to load tailwind cli.")
 
     if os.name != "nt":
-        os.chmod(dest, 0o755)
-
-    (Path(os.getcwd()) / "tailwind.config.js").write_text(tailwind_conf.format(
-        app_dir=str((home.parent / "app").resolve())
-    ))
+        os.system(f"chmod +x {str(dest)}")
 
     typer.echo(typer.style(f"Tailwind successfully setup.", fg=typer.colors.GREEN, bold=True))
 

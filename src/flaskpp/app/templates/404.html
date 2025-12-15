@@ -1,11 +1,16 @@
 {% extends "base_example.html" %}
 {% block title %}{{ _('Not found') }}{% endblock %}
 {% block content %}
-    <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
-        <h2 class="text-2xl font-semibold">{{ _('404 - Page not found') }}</h2>
-        <p class="mt-2">{{ _("We are sorry, but the requested page doesn't exist.") }}</p>
-        <p class="mt-4">
-            <a href="/" class="text-primary underline">{{ _('Back Home') }}</a>
+    <div class="text-center space-y-4">
+        <h1 class="text-5xl font-bold text-primary">404</h1>
+        <p class="text-lg text-slate-600">
+            {{ _("We are sorry, but the requested page doesn't exist.") }}
         </p>
+
+        <a href="/"
+           class="inline-block mt-4 px-5 py-2 rounded-lg bg-primary text-light font-medium
+              hover:bg-primary/90 transition shadow">
+            {{ _("Back Home") }}
+        </a>
     </div>
 {% endblock %}

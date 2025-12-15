@@ -55,7 +55,7 @@ def base_config():
 
         "extensions": {
             "default_EXT_SQLALCHEMY": 1,
-            "EXT_SOCKET": 0,
+            "default_EXT_SOCKET": 1,
             "EXT_BABEL": 0,
             "EXT_FST": 0,
             "EXT_AUTHLIB": 0,
@@ -83,7 +83,7 @@ def welcome():
     typer.echo("Thank your for using our little foundation to build")
     typer.echo("your new app! We will try our best to get you ready")
     typer.echo("within the next two minutes. 💚  Start a timer! ;)\n")
-    typer.echo("        " +
+    typer.echo("      " +
                typer.style("~ GrowVolution 2025 - MIT License ~", fg=typer.colors.CYAN, bold=True) +
                "\n")
     typer.echo("---------------------------------------------------")

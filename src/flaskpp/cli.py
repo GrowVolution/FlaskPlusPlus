@@ -7,7 +7,7 @@ from flaskpp.utils.setup import setup
 from flaskpp.utils.run import run
 from flaskpp.utils.service_registry import registry_entry
 from flaskpp.tailwind import setup_tailwind
-from flaskpp.vite import load_node, setup_vite
+from flaskpp.vite import load_node, prepare_vite
 
 app = typer.Typer(help="Flask++ CLI")
 cli_home = Path(__file__).parent
@@ -142,7 +142,7 @@ app = create_app().to_asgi()
     setup_tailwind()
 
     load_node()
-    setup_vite()
+    prepare_vite()
 
     typer.echo(typer.style("Flask++ project successfully initialized.", fg=typer.colors.GREEN, bold=True))
 

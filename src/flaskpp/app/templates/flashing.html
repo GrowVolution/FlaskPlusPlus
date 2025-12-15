@@ -1,22 +1,33 @@
-<div id="flashContainer">
+<div id="flashContainer" class="fixed top-20 right-4 z-50 w-full max-w-sm space-y-3">
     {% with msgs = get_flashed_messages(with_categories=true) %}
         {% if msgs %}
             {% for cat, msg in msgs %}
-                <div class="flash p-4 mb-3 rounded border-l-4
-                    {% if cat == 'success' %} bg-green-100 border-green-600 text-green-800
-                    {% elif cat == 'warning' %} bg-yellow-100 border-yellow-600 text-yellow-800
-                    {% elif cat == 'danger' %} bg-red-100 border-red-600 text-red-800
-                    {% elif cat == 'info' %} bg-blue-100 border-blue-600 text-blue-800
-                    {% else %} bg-gray-100 border-gray-600 text-gray-800
-                    {% endif %}">
-                    <div class="flex justify-between items-start">
-                        <span>{{ msg }}</span>
-                        <button type="button"
-                                class="ml-3 text-xl leading-none cursor-pointer"
-                                onclick="this.parentElement.parentElement.remove()">
-                            &times;
-                        </button>
-                    </div>
+                <div class="
+                    flash flex items-start justify-between gap-3
+                    rounded-lg border-l-4 px-4 py-3 shadow-md bg-white
+
+                    {% if cat == 'success' %}
+                        border-green-500 text-green-800
+                    {% elif cat == 'warning' %}
+                        border-yellow-500 text-yellow-800
+                    {% elif cat == 'danger' %}
+                        border-red-500 text-red-800
+                    {% elif cat == 'info' %}
+                        border-blue-500 text-blue-800
+                    {% else %}
+                        border-slate-400 text-slate-800
+                    {% endif %}
+                ">
+                    <span class="text-sm leading-relaxed">
+                        {{ msg }}
+                    </span>
+
+                    <button type="button"
+                            class="ml-2 text-lg leading-none opacity-60 hover:opacity-100 transition"
+                            onclick="this.closest('.flash').remove()"
+                            aria-label="Close">
+                        &times;
+                    </button>
                 </div>
             {% endfor %}
         {% endif %}
