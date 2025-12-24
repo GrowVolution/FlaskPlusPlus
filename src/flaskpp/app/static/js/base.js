@@ -63,7 +63,7 @@ const infoBody = document.getElementById('infoModalBody');
 
 
 export async function confirmDialog(title, message, html, category) {
-    confirmText.innerHTML = message.replace(/\n/g, "<br>");
+    confirmTitle.textContent = title;
     confirmBtn.className =
         `inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold
          focus:outline-none focus:ring-2 focus:ring-primary/40 transition text-white
@@ -76,7 +76,7 @@ export async function confirmDialog(title, message, html, category) {
     if (message) {
         confirmBody.classList.add('hidden');
         confirmText.classList.remove('hidden');
-        confirmText.textContent = message;
+        confirmText.textContent = message.replace(/\n/g, "<br>");
     } else {
         confirmText.classList.add('hidden');
         confirmBody.classList.remove('hidden');
@@ -112,7 +112,7 @@ export function showInfo(title, message, html) {
     if (message) {
         infoBody.classList.add('hidden');
         infoText.classList.remove('hidden');
-        infoText.textContent = message;
+        infoText.textContent = message.replace(/\n/g, "<br>");
     } else {
         infoText.classList.add('hidden');
         infoBody.classList.remove('hidden');
