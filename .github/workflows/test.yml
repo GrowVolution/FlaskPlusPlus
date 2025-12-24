@@ -4,20 +4,20 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: debian-latest
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y python3 python3-pip python3-venv git
+      - uses: actions/checkout@v4
 
       - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install ".[test]"
+          python -m pip install --upgrade pip
+          python -m pip install ".[test]"
 
       - name: Run tests
         run: pytest --cov=flaskpp
