@@ -14,6 +14,7 @@ from flaskpp.app.config.default import DefaultConfig
 from flaskpp.app.utils.processing import handlers
 from flaskpp.app.i18n import init_i18n
 from flaskpp.modules import register_modules, ManifestError, ModuleError
+from flaskpp.tailwind import generate_tailwind_css
 from flaskpp.utils import enabled
 from flaskpp.utils.debugger import start_session, log, exception
 
@@ -143,7 +144,6 @@ class FlaskPP(Flask):
             from flaskpp.app.extensions import jwt
             jwt.init_app(self)
 
-        from flaskpp.tailwind import generate_tailwind_css
         generate_tailwind_css(self)
 
         self.register_blueprint(_fpp_default)

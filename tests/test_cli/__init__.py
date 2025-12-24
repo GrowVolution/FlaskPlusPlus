@@ -21,13 +21,20 @@ def test_fpp_help():
     assert "Usage" in result.stdout
 
 
+@patch("flaskpp.cli.setup_tailwind")
+@patch("flaskpp.cli.load_node")
+@patch("flaskpp.cli.prepare_vite")
 @patch("flaskpp.cli.subprocess.run")
-def test_fpp_init(mock_run):
+def test_fpp_init(mock_run, mock_prepare, mock_load, mock_tailwind):
     with runner.isolated_filesystem():
         result = runner.invoke(app, ["init"])
         assert result.exit_code == 0
         assert mock_run.call_count == 3
         assert "Flask++ project successfully initialized." in result.stdout
+
+        mock_prepare.assert_called_once()
+        mock_load.assert_called_once()
+        mock_tailwind.assert_called_once()
 
 
 @patch("flaskpp.utils.setup.prompt_yes_no")

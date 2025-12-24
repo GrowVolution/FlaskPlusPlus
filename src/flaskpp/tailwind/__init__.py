@@ -3,8 +3,6 @@ from pathlib import Path
 from tqdm import tqdm
 import os, platform, typer, requests, subprocess
 
-from flaskpp.utils import enabled
-
 home = Path(__file__).parent.resolve()
 tailwind_cli = {
     "linux": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.17/tailwindcss-linux-{architecture}",
