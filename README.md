@@ -1,7 +1,11 @@
 # 🧪 Flask++
 
 Tired of setting up Flask from scratch every single time? 🤯  
-With **Flask++**, you can spin up and manage multiple apps in **under two minutes** ⚡.
+With **Flask++**, you can spin up and manage multiple apps in **under two minutes**. ⚡
+
+And most important: This is **still Flask**. You won't have to miss the feeling of developing Flask.
+You've got **full control** about how much magic you would like to use and how much this framework should just feel like Flask.
+Not only that: If you experience something, which doesn't feel like Flask anymore... Please feel free to raise an issue and we'll fix that for you asap. ✌🏼️
 
 It comes with the most common Flask extensions pre-wired and ready to go.  
 Configuration is dead simple – extensions can be bound or unbound with ease.  
@@ -38,12 +42,15 @@ fpp setup
 fpp run [-i/--interactive]
 # Or straight up:
 fpp run [-a/--app] myapp [-p/--port] 5000 [-d/--debug]
+
+# For further assistance use:
+fpp --help
 ```
 
 The setup wizard will guide you through the configuration step by step. 🎯
 Once finished, your first app will be running – in less than the time it takes to make coffee. ☕🔥
 
-Tip: In our [example folder](https://github.com/GrowVolution/FlaskPlusPlus/examples) we do also provide complete setup files for [Windows](https://github.com/GrowVolution/FlaskPlusPlus/examples/fpp_project/setup.bat) and [Linux](https://github.com/GrowVolution/FlaskPlusPlus/examples/fpp_project/setup.sh) servers.
+Tip: In our [example folder](examples) we do also provide complete setup files for [Windows](examples/fpp_project/setup.bat) and [Linux](examples/fpp_project/setup.sh) servers.
 If your want to use them, just download the file you need into your project folder and do:
 
 ```bash
@@ -57,8 +64,10 @@ In this case only on Windows systems you need to install Python before. On Linux
 
 ## 🧩 Modules
 
-Inside the example folder you’ll also find an [example module](https://github.com/GrowVolution/FlaskPlusPlus/examples/example_module) to get you started.
-Use it as a template to quickly build your own features. 😉
+Inside the example folder you’ll also find an [example module](examples/example_module) to get you started.
+Use it as an inspiration for your own modules or generate basic modules using the Flask++ CLI. 😉
+
+`fpp modules create module_name`
 
 ---
 
@@ -101,14 +110,19 @@ server {
 
 ---
 
-## 🌱 Let it grow
+## 📝 Documentation
+For further information about this framework and how to use it, you may like to read our [documentation](DOCS.md). 🫶🏼
+
+---
+
+### 🌱 Let it grow
 
 If you like this project, feel free to **fork it, open issues, or contribute ideas**.
 Every improvement makes life easier for the next developer. 💚
 
 ---
 
-## 📜 License
+### 📜 License
 
 Released under the [MIT License](LICENSE).
 Do whatever you want with it – open-source, commercial, or both. Follow your heart. 💯

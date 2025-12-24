@@ -3,7 +3,8 @@ from pathlib import Path
 from configparser import ConfigParser
 import typer, os
 
-from ..modules import generate_modlib
+from flaskpp.utils import prompt_yes_no
+from flaskpp.modules import generate_modlib
 
 counting_map = {
     1: "st",
@@ -11,8 +12,7 @@ counting_map = {
     3: "rd"
 }
 
-conf_path = Path(os.getcwd()) / "app_configs"
-conf_path.mkdir(exist_ok=True)
+conf_path = Path.cwd() / "app_configs"
 
 
 def base_config():
@@ -54,7 +54,7 @@ def base_config():
 
         "extensions": {
             "default_EXT_SQLALCHEMY": 1,
-            "EXT_SOCKET": 0,
+            "default_EXT_SOCKET": 1,
             "EXT_BABEL": 0,
             "EXT_FST": 0,
             "EXT_AUTHLIB": 0,
@@ -65,7 +65,8 @@ def base_config():
         },
 
         "features": {
-            "FPP_PROCESSING": 0,
+            "default_FPP_PROCESSING": 1,
+            "default_FRONTEND_ENGINE": 1,
         },
 
         "dev": {
@@ -81,7 +82,7 @@ def welcome():
     typer.echo("Thank your for using our little foundation to build")
     typer.echo("your new app! We will try our best to get you ready")
     typer.echo("within the next two minutes. 💚  Start a timer! ;)\n")
-    typer.echo("        " +
+    typer.echo("      " +
                typer.style("~ GrowVolution 2025 - MIT License ~", fg=typer.colors.CYAN, bold=True) +
                "\n")
     typer.echo("---------------------------------------------------")
@@ -141,20 +142,19 @@ def setup_app(app_number):
         fg=typer.colors.GREEN, bold=True
     ) + "\n")
 
-    register_q = input(typer.style(
+    register_app = prompt_yes_no(typer.style(
         f"Do you want to register {app} as a service? (y/N): ",
         fg=typer.colors.MAGENTA, bold=True
-    ) + "\n").lower().strip()
+    ) + "\n")
 
-    if register_q in ["yes", "y", "1"]:
+    if register_app:
         from .service_registry import register
         try:
             port_input = input("On which port do you want your service to run? (5000): ").strip()
             port = int(port_input) if port_input else 5000
         except ValueError:
             port = 5000
-        debug = (input("Do you want your service to run in debug mode? (y/N): ")
-                 .lower().strip() in ["yes", "y", "1"])
+        debug = prompt_yes_no("Do you want your service to run in debug mode? (y/N): ")
 
         register(app, port, debug)
 
@@ -173,8 +173,7 @@ def setup():
     setup_app(i)
 
     i += 1
-    while (input(f"Do you want to create a {i}{counting_map.get(i, 'th')} app? (y/N): ")
-            .lower().strip()) in ["yes", "y", "1"]:
+    while prompt_yes_no(f"Do you want to create a {i}{counting_map.get(i, 'th')} app? (y/N): "):
         setup_app(i)
         i += 1
 

@@ -1,6 +1,6 @@
 from flask import flash, redirect, request, url_for, render_template
 
-from .. import NAME
+from .. import module
 from ..forms import ContactForm
 from ..data.your_dataset import YourModel
 from flaskpp.app.utils.translating import t
@@ -19,9 +19,9 @@ def handle_request():
         add_model(db_entry)
 
         flash(t("Thanks! Your message has been received."), "success")
-        return redirect(url_for(f"{NAME}.endpoint"))
+        return redirect(url_for(f"{module.safe_name}.endpoint"))
 
     if request.method == "POST" and not form.validate():
         flash(t("Please check your inputs."), "danger")
 
-    return render_template("your_form.html", form=form)
+    return module.render_template("your_form.html", form=form)

@@ -1,10 +1,16 @@
-<div id="flashContainer">
+<div id="flashContainer" class="flash-container">
     {% with msgs = get_flashed_messages(with_categories=true) %}
         {% if msgs %}
             {% for cat, msg in msgs %}
-                <div class="alert alert-{{cat}} alert-dismissible flash fade show" role="alert">
-                    {{ msg }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="flash {{ cat }}">
+                    <span class="flash-text">
+                        {{ msg }}
+                    </span>
+                    <button type="button"
+                            onclick="this.closest('.flash').remove()"
+                            aria-label="Close">
+                        &times;
+                    </button>
                 </div>
             {% endfor %}
         {% endif %}

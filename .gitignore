@@ -6,10 +6,21 @@ instance/
 migrations/
 translations/
 app_configs/
+services/
 logs/
 flaskpp.egg-info/
 dist/
+node/
+node_modules/
 
 [files]
 .env
+.coverage
 messages.pot
+vite.config.*.js
+package.json
+package-lock.json
+tailwind
+tailwind.exe
+tailwind.css
+tsconfig.json

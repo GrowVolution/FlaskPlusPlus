@@ -1,11 +1,12 @@
-from flask import request, render_template
+from flask import request, render_template, url_for
 from werkzeug.exceptions import NotFound
+from markupsafe import Markup
 
-from ..utils.translating import get_locale
-from ..utils.auto_nav import nav_links
-from ..socket import default_handlers, no_handler
-from ...utils import random_code
-from ...utils.debugger import log, exception
+from flaskpp.app.utils.translating import get_locale
+from flaskpp.app.utils.auto_nav import nav_links
+from flaskpp.app.socket import default_handlers, no_handler
+from flaskpp.utils import random_code, enabled
+from flaskpp.utils.debugger import log, exception
 
 handlers = {}
 
@@ -20,6 +21,10 @@ def _context_processor():
         PATH=request.path,
         LANG=get_locale(),
         NAV=nav_links,
+
+        enabled=enabled,
+        fpp_tailwind=Markup(f"<link rel='stylesheet' href='{ url_for('fpp_default.static', filename='css/tailwind.css') }'>"),
+        tailwind_main=Markup(f"<link rel='stylesheet' href='{ url_for('static', filename='css/tailwind.css') }'>"),
     )
 
 
@@ -66,13 +71,16 @@ def socket_event_handler(fn):
     return fn
 
 @socket_event_handler
-def _socket_event_handler(data: dict):
+def _socket_event_handler(sid: str, data: dict):
     event = data["event"]
     payload = data.get("payload")
-    log("request", f"Socket event: {event} - With data: {payload}")
+    log("request", f"Socket event from {sid}: {event} - With data: {payload}")
 
     handler = default_handlers.get(event, no_handler)
-    return handler(payload)
+    try:
+        return handler(payload)
+    except Exception as e:
+        return handlers["handle_socket_error"](e)
 
 
 def handle_socket_error(fn):

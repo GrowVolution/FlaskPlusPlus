@@ -1,34 +1,14 @@
-from flask import Flask
 from jinja2 import ChoiceLoader, PrefixLoader, FileSystemLoader
 from pathlib import Path
 from importlib import import_module
 from configparser import ConfigParser
-from functools import wraps
 import os, typer
 
-from ..utils.debugger import log, exception
+from flaskpp.utils.debugger import log, exception
 
-home = Path(os.getcwd())
+home = Path.cwd()
 module_home = home / "modules"
 conf_path = home / "app_configs"
-
-
-def require_extensions(*extensions):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            for ext in extensions:
-                if not isinstance(ext, str):
-                    log("warn", f"Invalid extension '{ext}'.")
-                    continue
-
-                from ..utils import enabled
-                if not enabled(f"EXT_{ext.upper()}"):
-                    raise RuntimeError(f"Extension '{ext}' is not enabled.")
-            return func(*args, **kwargs)
-
-        return wrapper
-    return decorator
 
 
 def generate_modlib(app_name: str):
@@ -88,7 +68,7 @@ def generate_modlib(app_name: str):
         config.write(f)
 
 
-def register_modules(app: Flask):
+def register_modules(app):
     app_name = os.getenv("APP_NAME")
     if not app_name:
         raise RuntimeError("Missing app name variable: APP_NAME")
@@ -114,18 +94,25 @@ def register_modules(app: Flask):
 
         try:
             mod = import_module(f"modules.{mod_name}")
-        except ModuleNotFoundError:
-            log("error", f"Could not import module '{mod_name}' for app '{app_name}'.")
+        except ModuleNotFoundError as e:
+            exception(e, f"Could not import module '{mod_name}' for app '{app_name}'.")
             continue
 
-        register = getattr(mod, "register_module", None)
-        if not callable(register):
-            log("error", f"Missing 'register_module(app: Flask)' in module '{mod_name}'.")
+        from flaskpp import Module
+        module = getattr(mod, "module", None)
+        if not isinstance(module, Module):
+            log("error", f"Missing 'module: Module' in module '{mod_name}'.")
+            continue
+
+        try:
+            log("info", f"Registering: {module}")
+        except ManifestError as e:
+            exception(e, f"Failed to log {mod_name}.module")
             continue
 
         try:
             home = os.getenv("HOME_MODULE", "").lower() == mod_name.lower()
-            register(app, home)
+            module.enable(app, home)
             loader_context[mod_name] = FileSystemLoader(f"modules/{mod_name}/templates")
             if home:
                 primary_loader = loader_context[mod_name]
@@ -143,3 +130,11 @@ def register_modules(app: Flask):
     )
 
     app.jinja_loader = ChoiceLoader(loaders)
+
+
+class ModuleError(Exception):
+    pass
+
+
+class ManifestError(ModuleError):
+    pass

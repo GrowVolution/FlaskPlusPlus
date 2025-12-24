@@ -4,7 +4,9 @@ from datetime import datetime
 import subprocess, sys, os, signal
 import typer
 
-root_path = Path(os.getcwd())
+from flaskpp.utils import prompt_yes_no
+
+root_path = Path.cwd()
 conf_path = root_path / "app_configs"
 logs_path = root_path / "logs"
 
@@ -49,11 +51,6 @@ def _prompt_port(app_name: str, suggested: int) -> tuple[int, int]:
     return port, next_default
 
 
-def _promt_debug() -> str:
-    choice = input("Start app in debug mode? (y/N): ").strip().lower()
-    return "1" if choice in {"y", "yes", "1"} else "0"
-
-
 def start_app(conf_file: Path, default_port: int, reload: bool = False) -> int:
     app_name = conf_file.stem
     base_env = _env_from_conf(conf_file)
@@ -66,7 +63,7 @@ def start_app(conf_file: Path, default_port: int, reload: bool = False) -> int:
     else:
         if args["interactive"]:
             port, next_default = _prompt_port(app_name, default_port)
-            debug = args["debug"] or _promt_debug()
+            debug = args["debug"] or prompt_yes_no("Start app in debug mode? (y/N): ")
         else:
             port, next_default = default_port, None
             debug = args["debug"]
@@ -136,7 +133,7 @@ def shutdown(signum=None, frame=None):
     prefix = "S"
     if signum:
         prefix = f"Handling signal SIG{'INT' if signum == signal.SIGINT else 'TERM'}, s"
-    typer.echo(typer.style(f"\n{prefix}hutting down...", fg=typer.colors.MAGENTA, bold=True))
+    typer.echo(typer.style(f"\n{prefix}hutting down...", fg=typer.colors.YELLOW, bold=True))
     for app in apps:
         stop_app(app)
     typer.echo(typer.style("Thank you for playing the game of life... Bye!", bold=True))
@@ -190,7 +187,7 @@ def interactive_main():
             shutdown()
             sys.exit(0)
         if cmd not in {"1", "2", "3", "4"}:
-            typer.echo(typer.style("Invalid option.", fg=typer.colors.YELLOW, bold=True))
+            typer.echo(typer.style("Invalid option.", fg=typer.colors.RED, bold=True))
             continue
         if not choices:
             typer.echo(typer.style(

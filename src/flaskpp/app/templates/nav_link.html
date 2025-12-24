@@ -1,6 +1,4 @@
-<div>
-    <a href="{{ href }}"
-       class="nav-link {{ 'active fw-bold' if request.path == href else '' }}">
-        {{ _(label) }}
-    </a>
-</div>
+<a href="{{ href }}"
+   class="nav-link {{ 'active' if request.path == href else 'inactive' }}">
+    {{ _(label) }}
+</a>

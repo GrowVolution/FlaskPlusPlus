@@ -1,10 +1,8 @@
 from pathlib import Path
-from colorama import Fore, Style
-import typer, os, sys, ctypes
+import typer, os, sys, ctypes, subprocess, shlex
 
-home = Path(os.getcwd())
+home = Path.cwd().resolve()
 service_path = home / "services"
-service_path.mkdir(exist_ok=True)
 
 registry = typer.Typer(help="Manage OS-level services for Flask++ apps.")
 
@@ -18,14 +16,17 @@ def _ensure_admin() -> bool:
     return os.geteuid() == 0
 
 
-def _service_file(app: str):
+def service_file(app: str):
     return service_path / (f"{app}.py" if os.name == "nt" else f"{app}.service")
 
 
 def create_service(app_name: str, port: int, debug: bool):
-    entry = f"{sys.executable} -m flaskpp run --app {app_name} --port {port} {'--debug' if debug else ''}"
+    args = [sys.executable, "-m", "flaskpp", "run", "--app", app_name, "--port", str(port)]
+    if debug:
+        args.append("--debug")
 
     if os.name == "nt":
+        entry_list = ", ".join(repr(a) for a in args)
         template = f"""
 import win32serviceutil, win32service, win32event, servicemanager, subprocess, time
 
@@ -50,7 +51,10 @@ class AppService(win32serviceutil.ServiceFramework):
         self.main_loop()
 
     def main_loop(self):
-        proc = subprocess.Popen(["cmd", "/C", "{entry}"])
+        proc = subprocess.Popen(
+            [{entry_list}],
+            cwd=r"{str(home)}"
+        )
         while self.alive:
             if proc.poll() is not None:
                 raise RuntimeError("Service execution failed.")
@@ -60,31 +64,38 @@ class AppService(win32serviceutil.ServiceFramework):
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AppService)
 """
-        out = _service_file(app_name)
+        out = service_file(app_name)
         out.write_text(template)
 
     else:
+        exec_start = " ".join(shlex.quote(a) for a in args)
+        user = str(home).split("/")[1] if str(home).startswith("/home/") else "root"
         template = f"""
 [Unit]
 Description={app_name} Service
 After=network.target
 
 [Service]
-ExecStart={entry}
+User={user}
+ExecStart={exec_start}
+WorkingDirectory={str(home)}
 Type=simple
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 """
-        out = _service_file(app_name)
+        out = service_file(app_name)
         out.write_text(template)
-        os.system(f"ln -sf {out} /etc/systemd/system/{app_name}.service")
+        target = Path(f"/etc/systemd/system/{app_name}.service")
+        if target.is_symlink() or target.exists():
+            target.unlink()
+        target.symlink_to(out)
 
 
 @registry.command()
-def register(app: str,
-             port: int = typer.Option(...),
+def register(app: str = typer.Option(..., "--app", "-a"),
+             port: int = typer.Option(5000, "--port", "-p"),
              debug: bool = typer.Option(False, "--debug", "-d")):
     if not _ensure_admin():
         typer.echo(typer.style(
@@ -93,16 +104,23 @@ def register(app: str,
         ))
         raise typer.Exit(1)
 
+    if not (app and (home / "app_configs" / f"{app}.conf").exists()):
+        typer.echo(typer.style(
+            "You must specify a valid app to register it.",
+            fg=typer.colors.RED, bold=True
+        ))
+        raise typer.Exit(1)
+
     create_service(app, port, debug)
 
     if os.name == "nt":
-        f = _service_file(app)
-        os.system(f"{sys.executable} {f} install")
-        os.system(f"{sys.executable} {f} start")
+        f = service_file(app)
+        subprocess.run([sys.executable, str(f), "install"], check=False)
+        subprocess.run([sys.executable, str(f), "start"], check=False)
     else:
-        os.system("systemctl daemon-reload")
-        os.system(f"systemctl enable {app}")
-        os.system(f"systemctl start {app}")
+        subprocess.run(["systemctl", "daemon-reload"], check=False)
+        subprocess.run(["systemctl", "enable", app], check=False)
+        subprocess.run(["systemctl", "start", app], check=False)
 
     typer.echo(typer.style(f"Service {app} registered.", fg=typer.colors.GREEN, bold=True))
 
@@ -110,10 +128,10 @@ def register(app: str,
 @registry.command()
 def start(app: str):
     if os.name == "nt":
-        f = _service_file(app)
-        os.system(f"{sys.executable} {f} start")
+        f = service_file(app)
+        subprocess.run([sys.executable, str(f), "start"], check=False)
     else:
-        os.system(f"systemctl start {app}")
+        subprocess.run(["systemctl", "start", app], check=False)
 
     typer.echo(typer.style(f"Service {app} started.", fg=typer.colors.GREEN, bold=True))
 
@@ -121,10 +139,10 @@ def start(app: str):
 @registry.command()
 def stop(app: str):
     if os.name == "nt":
-        f = _service_file(app)
-        os.system(f"{sys.executable} {f} stop")
+        f = service_file(app)
+        subprocess.run([sys.executable, str(f), "stop"], check=False)
     else:
-        os.system(f"systemctl stop {app}")
+        subprocess.run(["systemctl", "stop", app], check=False)
 
     typer.echo(typer.style(f"Service {app} stopped.", fg=typer.colors.YELLOW, bold=True))
 
@@ -139,15 +157,15 @@ def remove(app: str):
         raise typer.Exit(1)
 
     if os.name == "nt":
-        f = _service_file(app)
-        os.system(f"{sys.executable} {f} stop")
-        os.system(f"{sys.executable} {f} remove")
+        f = service_file(app)
+        subprocess.run([sys.executable, str(f), "stop"], check=False)
+        subprocess.run([sys.executable, str(f), "remove"], check=False)
         f.unlink(missing_ok=True)
     else:
-        os.system(f"systemctl stop {app}")
-        os.system(f"systemctl disable {app}")
-        (_service_file(app)).unlink(missing_ok=True)
-        os.system("systemctl daemon-reload")
+        subprocess.run(["systemctl", "stop", app], check=False)
+        subprocess.run(["systemctl", "disable", app], check=False)
+        service_file(app).unlink(missing_ok=True)
+        subprocess.run(["systemctl", "daemon-reload"], check=False)
 
     typer.echo(typer.style(f"Service {app} removed.", fg=typer.colors.RED, bold=True))
 
