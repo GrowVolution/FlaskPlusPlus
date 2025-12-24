@@ -6,7 +6,7 @@ import typer
 
 from flaskpp.utils import prompt_yes_no
 
-root_path = Path(os.getcwd())
+root_path = Path.cwd()
 conf_path = root_path / "app_configs"
 logs_path = root_path / "logs"
 
@@ -133,7 +133,7 @@ def shutdown(signum=None, frame=None):
     prefix = "S"
     if signum:
         prefix = f"Handling signal SIG{'INT' if signum == signal.SIGINT else 'TERM'}, s"
-    typer.echo(typer.style(f"\n{prefix}hutting down...", fg=typer.colors.MAGENTA, bold=True))
+    typer.echo(typer.style(f"\n{prefix}hutting down...", fg=typer.colors.YELLOW, bold=True))
     for app in apps:
         stop_app(app)
     typer.echo(typer.style("Thank you for playing the game of life... Bye!", bold=True))
@@ -187,7 +187,7 @@ def interactive_main():
             shutdown()
             sys.exit(0)
         if cmd not in {"1", "2", "3", "4"}:
-            typer.echo(typer.style("Invalid option.", fg=typer.colors.YELLOW, bold=True))
+            typer.echo(typer.style("Invalid option.", fg=typer.colors.RED, bold=True))
             continue
         if not choices:
             typer.echo(typer.style(

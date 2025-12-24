@@ -24,3 +24,7 @@ def is_port_free(port, host="127.0.0.1") -> bool:
             return True
         except OSError:
             return False
+
+
+def sanitize_text(value: str) -> str:
+    return value.encode("utf-8", "ignore").decode("utf-8")

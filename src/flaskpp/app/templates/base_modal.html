@@ -1,26 +1,27 @@
 <div id="{% block id %}{% endblock %}"
-     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm px-4"
-     aria-hidden="true">
+     class="modal hidden"
+     inert
+     role="dialog"
+     aria-modal="true">
 
-    <div class="w-full max-w-lg rounded-xl bg-white shadow-xl ring-1 ring-black/5 animate-[fadeIn_0.2s_ease-out]">
-        <div class="flex items-center justify-between px-5 py-4 border-b">
-            <h5 class="text-lg font-semibold text-slate-800">
+    <div class="modal-body">
+        <div class="modal-header">
+            <h5 class="headline">
                 {% block title %}{% endblock %}
             </h5>
 
             <button type="button"
-                    class="text-slate-400 hover:text-slate-700 transition text-xl leading-none"
-                    onclick="this.closest('[id]').classList.add('hidden')"
+                    data-modal-close
                     aria-label="Close">
                 &times;
             </button>
         </div>
 
-        <div class="px-5 py-4 text-sm text-slate-700 leading-relaxed">
+        <div class="modal-content">
             {% block body %}{% endblock %}
         </div>
 
-        <div class="flex justify-end gap-2 px-5 py-3 border-t bg-slate-50 rounded-b-xl">
+        <div class="modal-footer">
             {% block footer %}{% endblock %}
         </div>
     </div>

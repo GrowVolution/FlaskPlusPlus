@@ -1,16 +1,19 @@
 {% extends "base_example.html" %}
 {% block title %}{{ _('Not found') }}{% endblock %}
 {% block content %}
-    <div class="text-center space-y-4">
-        <h1 class="text-5xl font-bold text-primary">404</h1>
-        <p class="text-lg text-slate-600">
-            {{ _("We are sorry, but the requested page doesn't exist.") }}
-        </p>
+    <div class="wrap-center">
+        <div class="w-fit max-w-md rounded-xl bg-white shadow-lg border border-slate-800 p-8 text-center">
+            <h1 class="text-2xl font-semibold text-slate-800">404</h1>
+            <p class="mt-2 text-slate-600 text-lg">
+                {{ _("We are sorry, but the requested page doesn't exist.") }}
+            </p>
 
-        <a href="/"
-           class="inline-block mt-4 px-5 py-2 rounded-lg bg-primary text-light font-medium
-              hover:bg-primary/90 transition shadow">
-            {{ _("Back Home") }}
-        </a>
+            <a href="/"
+               class="inline-block mt-6 px-5 py-2 rounded-lg
+                      bg-slate-200 text-light font-medium
+                      hover:bg-slate-300 transition shadow">
+                {{ _("Back Home") }}
+            </a>
+        </div>
     </div>
 {% endblock %}

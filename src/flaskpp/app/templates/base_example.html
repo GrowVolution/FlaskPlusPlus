@@ -1,15 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ LANG }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="icon" href="{{ url_for('fpp_default.static', filename='img/favicon.png') }}" type="image/png">
 
-    <link rel="stylesheet"
-          href="{{ url_for('fpp_default.static', filename='css/tailwind.css') }}">
-    <link rel="stylesheet"
-          href="{{ url_for('fpp_default.static', filename='css/tailwind_fpp.css') }}">
+    {{ fpp_tailwind }}
 
     <title>{% block title %}Flask++ App{% endblock %}</title>
 
@@ -26,42 +23,23 @@
         <script src="{{ url_for('fpp_default.static', filename='js/base.js') }}" type="module"></script>
     {% endif %}
 
-    <style>
-        .flash {
-            animation: fadeIn 0.2s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-    </style>
-
     {% block head %}{% endblock %}
 </head>
 
-<body class="min-h-screen flex flex-col bg-gradient-to-br from-primary-light via-white to-primary-light text-slate-800">
-    <header class="sticky top-0 z-50">
-        <nav class="w-full bg-primary text-light shadow-md">
-            <div class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
-                <a class="text-xl font-semibold tracking-tight hover:opacity-90 transition"
-                   href="/">
-                    {{ _('My new Flask-App') }}
-                </a>
+<body>
+    <header>
+        <nav>
+            <div class="nav-inner-div">
+                <a class="nav-brand" href="/">{{ _('My Flask++ App') }}</a>
 
-                <button class="lg:hidden p-2 rounded-md border border-light/40 hover:bg-light/10 transition"
-                        type="button"
-                        data-collapse-toggle="navbarCollapse"
-                        aria-controls="navbarCollapse"
-                        aria-expanded="false"
-                        aria-label="Toggle navigation">
-                    <span class="block w-5 h-0.5 bg-light mb-1"></span>
-                    <span class="block w-5 h-0.5 bg-light mb-1"></span>
-                    <span class="block w-5 h-0.5 bg-light"></span>
+                <button class="nav-collapse-btn" type="button" data-collapse-toggle="navbarCollapse"
+                        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="mb-1 nav-collapse-btn-stripe"></span>
+                    <span class="mb-1 nav-collapse-btn-stripe"></span>
+                    <span class="nav-collapse-btn-stripe"></span>
                 </button>
 
-                <div id="navbarCollapse"
-                     class="hidden lg:flex items-center gap-2">
+                <div id="navbarCollapse" class="nav-collapse max-md:hidden">
                     {% for label, href in NAV.items() %}
                         {% include "nav_link.html" with context %}
                     {% endfor %}
@@ -72,14 +50,12 @@
         {% include "flashing.html" %}
     </header>
 
-    <main id="main" class="flex-grow flex items-center justify-center px-6 py-12">
-        <div class="w-full max-w-4xl">
-            {% block content %}{% endblock %}
-        </div>
+    <main id="main">
+        {% block content %}{% endblock %}
     </main>
 
-    <footer class="mt-auto bg-primary text-light text-sm">
-        <div class="max-w-7xl mx-auto px-4 py-3 text-center opacity-80">
+    <footer>
+        <div class="footer-inner-div">
             &copy; {{ current_year|default(2025) }} – Flask++
         </div>
     </footer>
@@ -88,6 +64,45 @@
         {% include "modals/confirm_modal.html" %}
         {% include "modals/info_modal.html" %}
     {% endif %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const toggle = document.querySelector('[data-collapse-toggle="navbarCollapse"]');
+            const menu = document.getElementById("navbarCollapse");
+
+            if (!toggle || !menu) return;
+
+            const isMobile = () => window.innerWidth < 768;
+
+            const openMenu = () => {
+                menu.classList.remove("max-md:hidden");
+                toggle.setAttribute("aria-expanded", "true");
+            };
+
+            const closeMenu = () => {
+                menu.classList.add("max-md:hidden");
+                toggle.setAttribute("aria-expanded", "false");
+            };
+
+            toggle.addEventListener("click", () => {
+                const expanded = toggle.getAttribute("aria-expanded") === "true";
+                expanded ? closeMenu() : openMenu();
+            });
+
+            window.addEventListener("resize", () => {
+                if (!isMobile()) {
+                    menu.classList.remove("max-md:hidden");
+                    toggle.setAttribute("aria-expanded", "false");
+                } else {
+                    closeMenu();
+                }
+            });
+
+            if (isMobile()) {
+                closeMenu();
+            }
+        });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

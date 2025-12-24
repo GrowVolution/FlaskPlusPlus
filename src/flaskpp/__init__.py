@@ -1,5 +1,6 @@
-from flask import Flask, Blueprint, render_template as _render_template
+from flask import Flask, Blueprint, render_template as _render_template, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
+from markupsafe import Markup
 from threading import Thread
 from datetime import datetime
 from asgiref.wsgi import WsgiToAsgi
@@ -143,7 +144,7 @@ class FlaskPP(Flask):
             jwt.init_app(self)
 
         from flaskpp.tailwind import generate_tailwind_css
-        generate_tailwind_css()
+        generate_tailwind_css(self)
 
         self.register_blueprint(_fpp_default)
         self.url_prefix = ""
@@ -151,7 +152,7 @@ class FlaskPP(Flask):
         self.static_url_path = f"{self.url_prefix}/static"
 
         if enabled("FRONTEND_ENGINE"):
-            from flaskpp.fpp_node import Frontend
+            from flaskpp.fpp_node.vite import Frontend
             engine = Frontend(self)
             self.context_processor(lambda: {
                 "vite_main": engine.vite
@@ -185,19 +186,24 @@ class Module(Blueprint):
 
         self.name = import_name.split(".")[-1]
         self.import_name = import_name
-        manifest = Path(file).parent / "manifest.json"
+        self.root_path = Path(file).parent
+        manifest = self.root_path / "manifest.json"
         self.info = self._load_manifest(manifest)
         self.safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", self.name)
         self.extensions = required_extensions or []
         self.context = {
-            "NAME": self.safe_name
+            "NAME": self.safe_name,
         }
         self.home = False
 
         from flaskpp.app.extensions import require_extensions
         self.enable = require_extensions(*self.extensions)(self._enable)
 
-        super().__init__(self.safe_name, import_name)
+        super().__init__(
+            self.safe_name,
+            import_name,
+            static_folder=(Path(self.root_path) / "static")
+        )
 
     def __repr__(self):
         return f"<{self.info['name']} {self.version}> {self.info.get('description', '')}"
@@ -231,12 +237,15 @@ class Module(Blueprint):
                 log("warn", f"Failed to initialize models for {self.name}: {e}")
 
         if enabled("FRONTEND_ENGINE"):
-            from flaskpp.fpp_node import Frontend
+            from flaskpp.fpp_node.vite import Frontend
             engine = Frontend(self)
             self.context["vite"] = engine.vite
             self.frontend_engine = engine
 
-        self.context_processor(lambda: self.context)
+        self.context_processor(lambda: dict(
+            **self.context,
+            tailwind=Markup(f"<link rel='stylesheet' href='{url_for(f'{self.safe_name}.static', filename='css/tailwind.css')}'>")
+        ))
         app.register_blueprint(self)
 
     def _load_manifest(self, manifest: Path) -> dict:
@@ -254,13 +263,13 @@ class Module(Blueprint):
             self.name = module_data["name"]
 
         if not "description" in module_data:
-            RuntimeWarning(f"Missing description of {module_data['name']}.")
+            log("warn", f"Missing description of {module_data['name']}.")
 
         if not "version" in module_data:
             raise ManifestError("Module version not defined.")
 
         if not "author" in module_data:
-            RuntimeWarning(f"Author of {module_data['name']} not defined.")
+            log("warn", f"Author of {module_data['name']} not defined.")
 
         return module_data
 

@@ -24,6 +24,17 @@ def _node_cmd(cmd: str) -> str:
     return str(home / "node" / "bin" / cmd)
 
 
+def _node_env() -> dict:
+    env = os.environ.copy()
+    if os.name != "nt":
+        node_bin = str(home / "node" / "bin")
+        env["PATH"] = node_bin + os.pathsep + env.get("PATH", "")
+    else:
+        node_dir = str(home / "node")
+        env["PATH"] = node_dir + os.pathsep + env.get("PATH", "")
+    return env
+
+
 def load_node():
     data = _get_node_data()
     file_type = "zip" if data[1] == "win" else "tar.xz"

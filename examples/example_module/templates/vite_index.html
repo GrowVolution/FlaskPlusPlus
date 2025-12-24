@@ -1,5 +1,6 @@
 {% extends "base_example.html" %}
+
 {% block title %}{{ _('Home') }}{% endblock %}
 {% block head %}
-    <script src="{{ vite('main.js') }}" type="module"></script>
+    {{ vite('main.js') }}
 {% endblock %}

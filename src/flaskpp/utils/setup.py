@@ -12,8 +12,7 @@ counting_map = {
     3: "rd"
 }
 
-conf_path = Path(os.getcwd()) / "app_configs"
-conf_path.mkdir(exist_ok=True)
+conf_path = Path.cwd() / "app_configs"
 
 
 def base_config():

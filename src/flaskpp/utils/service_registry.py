@@ -1,9 +1,8 @@
 from pathlib import Path
 import typer, os, sys, ctypes, subprocess, shlex
 
-home = Path(os.getcwd()).resolve()
+home = Path.cwd().resolve()
 service_path = home / "services"
-service_path.mkdir(exist_ok=True)
 
 registry = typer.Typer(help="Manage OS-level services for Flask++ apps.")
 

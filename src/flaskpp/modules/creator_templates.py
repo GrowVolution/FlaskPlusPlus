@@ -52,20 +52,21 @@ module_index = """
 {# The base template is natively provided by Flask++. #}
 
 {% block title %}{{ _('My Module') }}{% endblock %}
+{% block head %}{{ tailwind }}{% endblock %}
+
 {% block content %}
-    <div class="wrapped-center">
-        <h2>{{ _('Welcome!') }}</h2>
-        <p>{{ _('This is my wonderful new module.') }}</p>
+    <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
+        <h2 class="text-2xl font-semibold">{{ _('Welcome!') }}</h2>
+        <p class="mt-2">{{ _('This is my wonderful new module.') }}</p>
     </div>
 {% endblock %}
 """
 
 module_vite_index = """
 {% extends "base_example.html" %}
+
 {% block title %}{{ _('Home') }}{% endblock %}
-{% block head %}
-    {{ vite('main.js') }}
-{% endblock %}
+{% block head %}{{ vite('main.js') }}{% endblock %}
 """
 
 module_data_init = """
@@ -82,6 +83,16 @@ def init_models():
             continue
         import_module(f"{module.import_name}.data.{file.stem}")
 
+"""
+
+tailwind_raw = """
+@import "tailwindcss";
+
+@source not "../../vite";
+
+@theme {
+    /* ... */
+}
 """
 
 module_manifest = """

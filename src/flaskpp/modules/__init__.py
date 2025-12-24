@@ -6,10 +6,9 @@ import os, typer
 
 from flaskpp.utils.debugger import log, exception
 
-home = Path(os.getcwd())
+home = Path.cwd()
 module_home = home / "modules"
 conf_path = home / "app_configs"
-module_home.mkdir(exist_ok=True)
 
 
 def generate_modlib(app_name: str):
@@ -133,9 +132,9 @@ def register_modules(app):
     app.jinja_loader = ChoiceLoader(loaders)
 
 
-class ManifestError(Exception):
+class ModuleError(Exception):
     pass
 
 
-class ModuleError(Exception):
+class ManifestError(ModuleError):
     pass

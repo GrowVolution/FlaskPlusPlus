@@ -7,8 +7,9 @@ from threading import Thread
 from pathlib import Path
 import typer, subprocess, json, re, requests, os
 
-from flaskpp.fpp_node import home, _node_cmd
+from flaskpp.fpp_node import home, _node_cmd, _node_env
 from flaskpp.utils import enabled, is_port_free
+from flaskpp.utils.debugger import exception
 
 
 @dataclass
@@ -36,6 +37,7 @@ package_json = """
     "preview": "vite preview"
   },
   "devDependencies": {
+    "typescript": "~5.9.3",
     "vite": "^7.2.4"
   },
   "dependencies": {
@@ -63,7 +65,39 @@ export default defineConfig({{
 }})
 """
 
+ts_conf_template = """
+{{
+  "compilerOptions": {{
+    "target": "ES2023",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    "strict": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    
+    "allowJs": true,
+    "checkJs": false
+  }},
+  "include": ["{include}"]
+}}
+"""
+
 vite_main = """
+import "./src/main.css";
+
 const _ = window.FPP?._ ?? (async msg => msg)
 
 const el = document.querySelector('#main')
@@ -71,11 +105,19 @@ if (el) {
   (async () => {
     el.innerHTML = `
       <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
-        <h2 class="text-2xl font-semibold">${await _("Welcome!")}</h2>
-        <p class="mt-2">${await _("This is your wonderful new app.")}</p>
+        <h2 class="text-2xl font-semibold">${await _("Injected with JavaScript!")}</h2>
+        <p class="mt-2">${await _("You can now use Vite module wise.")}</p>
       </div>
     `
   })()
+}
+"""
+
+vite_tw = """
+@import "tailwindcss";
+
+@theme {
+  /* ... */
 }
 """
 
@@ -86,9 +128,31 @@ def prepare_vite():
     typer.echo(typer.style("Setting up vite...", bold=True))
     (home / "package.json").write_text(package_json)
 
+    ts_conf_file = home / "tsconfig.json"
+    project_root = Path.cwd().resolve()
+    tsc_path = os.path.normpath(
+        os.path.relpath(project_root, start=home)
+    ) + "/**/vite/src"
+    if not ts_conf_file.exists():
+        ts_conf_file.write_text(ts_conf_template.format(
+            include=tsc_path
+        ))
+    else:
+        ts_conf = json.loads(ts_conf_file.read_text())
+        updated = []
+        for path in ts_conf["include"]:
+            base = Path(home, path.split("/**")[0]).resolve()
+            if base.exists():
+                updated.append(path)
+        if not tsc_path in ts_conf["include"]:
+            updated.append(tsc_path)
+        ts_conf["include"] = sorted(set(updated))
+        ts_conf_file.write_text(json.dumps(ts_conf))
+
     result = subprocess.run(
         [_node_cmd("npm"), "install"],
-        cwd=home
+        cwd=home,
+        env=_node_env()
     )
     if result.returncode != 0:
         typer.echo(typer.style("Failed to setup vite.", fg=typer.colors.RED, bold=True))
@@ -154,7 +218,10 @@ class Frontend(Blueprint):
         root.mkdir(exist_ok=True)
         public = root / "public"
         public.mkdir(exist_ok=True)
+        src = root / "src"
+        src.mkdir(exist_ok=True)
         main = root / "main.js"
+        main_css = src / "main.css"
         safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", parent.name)
         conf_name = f"vite.config.{safe_name}.js"
         (home / conf_name).write_text(vite_conf.format(
@@ -164,6 +231,8 @@ class Frontend(Blueprint):
         conf_params = ["--config", conf_name]
         if not main.exists():
             main.write_text(vite_main)
+        if not main_css.exists():
+            main_css.write_text(vite_tw)
 
         if enabled("DEBUG_MODE"):
             self.session = requests.Session()
@@ -175,12 +244,27 @@ class Frontend(Blueprint):
 
             self.server = subprocess.Popen(
                 [_node_cmd("npm"), "run", "dev", "--", "--port", str(self.port), *conf_params],
-                cwd=home
+                cwd=home,
+                env=_node_env()
             )
         else:
+            if any(root.rglob("*.ts")):
+                result = subprocess.run(
+                    [_node_cmd("npx"), "tsc"],
+                    cwd=home,
+                    env=_node_env(),
+                    capture_output=True,
+                    text=True
+                )
+                try:
+                    if result.returncode != 0: raise ViteError("TypeScript checks failed.")
+                except ViteError as e:
+                    exception(e, result.stderr or result.stdout)
+
             self.build = subprocess.Popen(
                 [_node_cmd("npm"), "run", "build", "--", *conf_params],
-                cwd=home
+                cwd=home,
+                env=_node_env()
             )
             self.dist = root / "dist"
             self.manifest = None

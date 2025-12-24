@@ -1,8 +1,11 @@
+from flask import Flask
 from pathlib import Path
 from tqdm import tqdm
 import os, platform, typer, requests, subprocess
 
-home = Path(__file__).parent
+from flaskpp.utils import enabled
+
+home = Path(__file__).parent.resolve()
 tailwind_cli = {
     "linux": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.17/tailwindcss-linux-{architecture}",
     "win": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.17/tailwindcss-windows-x64.exe"
@@ -26,30 +29,34 @@ def _tailwind_cmd():
     return str(home / "tailwind")
 
 
-def generate_tailwind_css():
-    app = (home.parent / "app").resolve()
-    css =  app / "static" / "css"
+def generate_tailwind_css(app: Flask):
+    out =  (home.parent / "app" / "static" / "css" / "tailwind.css")
 
-    if not os.getcwd() in str(app):
-        out = css / "tailwind_fpp.css"
-        if not out.exists():
-            result = subprocess.run(
-                [_tailwind_cmd(),
-                 "-i", str(css / "tailwind_raw.css"),
-                 "-o", str(out), "--minify",
-                 "--cwd", str(app)],
-            )
-            if result.returncode != 0:
-                raise TailwindError("Failed to generate tailwind_fpp.css")
+    if not out.exists():
+        result = subprocess.run(
+            [_tailwind_cmd(),
+             "-i", str(out.parent / "tailwind_raw.css"),
+             "-o", str(out), "--minify"],
+            cwd=home.parent
+        )
+        if result.returncode != 0:
+            raise TailwindError(f"Failed to generate {out}")
 
-    result = subprocess.run(
-        [_tailwind_cmd(),
-         "-i", str(css / "tailwind_raw.css"),
-         "-o", str(css / "tailwind.css"), "--minify",
-         "--cwd", os.getcwd()],
-    )
-    if result.returncode != 0:
-        raise TailwindError("Failed to generate tailwind.css")
+    root = Path(app.root_path).resolve()
+
+    for d in root.rglob("static/css"):
+        in_file = d / "tailwind_raw.css"
+        if not in_file.exists():
+            continue
+
+        result = subprocess.run(
+            [_tailwind_cmd(),
+             "-i", str(in_file),
+             "-o", str(d / "tailwind.css"), "--minify"],
+            cwd=d
+        )
+        if result.returncode != 0:
+            raise TailwindError(f"Failed to generate {d / 'tailwind.css'}")
 
 
 def setup_tailwind():

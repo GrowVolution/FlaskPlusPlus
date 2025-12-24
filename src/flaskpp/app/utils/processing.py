@@ -1,11 +1,12 @@
-from flask import request, render_template
+from flask import request, render_template, url_for
 from werkzeug.exceptions import NotFound
+from markupsafe import Markup
 
-from ..utils.translating import get_locale
-from ..utils.auto_nav import nav_links
-from ..socket import default_handlers, no_handler
-from ...utils import random_code, enabled
-from ...utils.debugger import log, exception
+from flaskpp.app.utils.translating import get_locale
+from flaskpp.app.utils.auto_nav import nav_links
+from flaskpp.app.socket import default_handlers, no_handler
+from flaskpp.utils import random_code, enabled
+from flaskpp.utils.debugger import log, exception
 
 handlers = {}
 
@@ -22,6 +23,8 @@ def _context_processor():
         NAV=nav_links,
 
         enabled=enabled,
+        fpp_tailwind=Markup(f"<link rel='stylesheet' href='{ url_for('fpp_default.static', filename='css/tailwind.css') }'>"),
+        tailwind_main=Markup(f"<link rel='stylesheet' href='{ url_for('static', filename='css/tailwind.css') }'>"),
     )
 
 

@@ -2,7 +2,7 @@ from git import Repo, exc
 from pathlib import Path
 import typer, shutil
 
-from flaskpp.utils import prompt_yes_no
+from flaskpp.utils import prompt_yes_no, sanitize_text
 from flaskpp.modules import module_home, creator_templates
 
 modules = typer.Typer(help="Manage the modules of Flask++ apps.")
@@ -57,10 +57,10 @@ def create(
     module_dst.mkdir(exist_ok=True)
 
     manifest = creator_templates.module_manifest.format(
-        name=input("Enter the name of your module: "),
-        description=input("Describe your module briefly: "),
-        version=input("Enter the version of your module: "),
-        author=input("Enter your name or nickname: ")
+        name=sanitize_text(input("Enter the name of your module: ")),
+        description=sanitize_text(input("Describe your module briefly: ")),
+        version=sanitize_text(input("Enter the version of your module: ")),
+        author=sanitize_text(input("Enter your name or nickname: "))
     )
     typer.echo(typer.style(f"Writing manifest...", bold=True))
     (module_dst / "manifest.json").write_text(manifest)
@@ -70,7 +70,8 @@ def create(
 
     static = module_dst / "static"
     static.mkdir(exist_ok=True)
-    (static / "css").mkdir(exist_ok=True)
+    css = static / "css"
+    css.mkdir(exist_ok=True)
     (static / "js").mkdir(exist_ok=True)
     (static / "img").mkdir(exist_ok=True)
 
@@ -80,6 +81,7 @@ def create(
     (module_dst / "routes.py").write_text(creator_templates.module_routes)
     (templates / f"index.html").write_text(creator_templates.module_index)
     (templates / f"vite_index.html").write_text(creator_templates.module_vite_index)
+    (css / "tailwind_raw.css").write_text(creator_templates.tailwind_raw)
 
     typer.echo(typer.style(f"Setting up requirements...", bold=True))
 
