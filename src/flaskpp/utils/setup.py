@@ -189,3 +189,7 @@ def setup():
     typer.echo("----------------- " +
                typer.style("Happy coding!", fg=typer.colors.CYAN, bold=True) +
                " -----------------")
+
+
+def setup_entry(app: typer.Typer):
+    app.command()(setup)

@@ -1,6 +1,6 @@
 [project]
 name = "flaskpp"
-version = "0.2.5"
+version = "0.2.8"
 description = "A Flask based framework for fast and easy app creation. Experience the real power of Flask without boilerplate, but therefore a well balanced mix of magic and the default Flask framework."
 authors = [
     { name = "Pierre", email = "pierre@growv-mail.org" }

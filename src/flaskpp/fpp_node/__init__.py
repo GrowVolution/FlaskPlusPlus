@@ -19,9 +19,13 @@ def _get_node_data():
 
 
 def _node_cmd(cmd: str) -> str:
+    node = home / "node"
+    if not node.exists():
+        raise NodeError("Missing node directory.")
+
     if os.name == "nt":
-        return str(home / "node" / f"{cmd}.cmd")
-    return str(home / "node" / "bin" / cmd)
+        return str(node / f"{cmd}.cmd")
+    return str(node / "bin" / cmd)
 
 
 def _node_env() -> dict:

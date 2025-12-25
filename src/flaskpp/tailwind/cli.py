@@ -2,19 +2,13 @@ import typer, subprocess, os
 
 from flaskpp.tailwind import _tailwind_cmd, TailwindError
 
-tailwind = typer.Typer(
-    help="Use the tailwind cli using the standalone Flask++ integration."
-)
 
+def tailwind(ctx: typer.Context):
+    if not ctx.args:
+        typer.echo(typer.style("Usage: fpp tailwind -- [args]", bold=True))
+        raise typer.Exit(1)
 
-@tailwind.callback(
-    invoke_without_command=True,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)
-def main(
-        ctx: typer.Context
-):
-    args = ctx.args
+    args = ctx.args[0:]
 
     result = subprocess.run(
         [_tailwind_cmd(), *args],
@@ -30,4 +24,9 @@ def main(
 
 
 def tailwind_entry(app: typer.Typer):
-    app.add_typer(tailwind, name="tailwind")
+    app.command(
+        context_settings={
+            "allow_extra_args": True,
+            "ignore_unknown_options": True,
+        }
+    )(tailwind)

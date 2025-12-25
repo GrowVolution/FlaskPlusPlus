@@ -3,8 +3,8 @@ from importlib.metadata import version
 import typer, os, subprocess, sys
 
 from flaskpp.modules.cli import modules_entry
-from flaskpp.utils.setup import setup
-from flaskpp.utils.run import run
+from flaskpp.utils.setup import setup_entry
+from flaskpp.utils.run import run_entry
 from flaskpp.utils.service_registry import registry_entry
 from flaskpp.tailwind import setup_tailwind
 from flaskpp.fpp_node import load_node
@@ -195,15 +195,17 @@ app = create_app().to_asgi()
 
     typer.echo(typer.style("Flask++ project successfully initialized.", fg=typer.colors.GREEN, bold=True))
 
-app.command()(setup)
-app.command()(run)
-
 
 def main():
+    setup_entry(app)
+    run_entry(app)
+
     modules_entry(app)
     registry_entry(app)
+
     node_entry(app)
     tailwind_entry(app)
+
     app()
 
 

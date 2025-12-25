@@ -8,7 +8,7 @@ from pathlib import Path
 import typer, subprocess, json, re, requests, os
 
 from flaskpp.fpp_node import home, _node_cmd, _node_env
-from flaskpp.utils import enabled, is_port_free
+from flaskpp.utils import enabled, is_port_free, posix_path
 from flaskpp.utils.debugger import exception
 
 
@@ -225,8 +225,8 @@ class Frontend(Blueprint):
         safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", parent.name)
         conf_name = f"vite.config.{safe_name}.js"
         (home / conf_name).write_text(vite_conf.format(
-            root=str(root),
-            entry_point=str(main)
+            root=posix_path(root),
+            entry_point=posix_path(main)
         ))
         conf_params = ["--config", conf_name]
         if not main.exists():
