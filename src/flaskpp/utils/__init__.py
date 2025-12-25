@@ -1,3 +1,4 @@
+from pathlib import Path
 import os, string, random, socket
 
 
@@ -28,3 +29,7 @@ def is_port_free(port, host="127.0.0.1") -> bool:
 
 def sanitize_text(value: str) -> str:
     return value.encode("utf-8", "ignore").decode("utf-8")
+
+
+def posix_path(path: Path) -> str:
+    return path.as_posix()

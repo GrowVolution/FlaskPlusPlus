@@ -245,3 +245,7 @@ def run(
         start_app(conf, args["port"])
         while True:
             continue
+
+
+def run_entry(app: typer.Typer):
+    app.command()(run)

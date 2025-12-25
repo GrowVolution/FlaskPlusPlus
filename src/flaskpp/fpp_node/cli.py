@@ -2,23 +2,14 @@ import typer, subprocess, os
 
 from flaskpp.fpp_node import _node_cmd, NodeError
 
-node = typer.Typer(
-    help="Run node commands using the portable Flask++ node bundle. (Behaves like normal node.)"
-)
 
+def node(ctx: typer.Context):
+    if not ctx.args:
+        typer.echo(typer.style("Usage: fpp node <command> [args]", bold=True, fg=typer.colors.YELLOW))
+        raise typer.Exit(1)
 
-@node.callback(
-    invoke_without_command=True,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)
-def main(
-    ctx: typer.Context,
-    command: str = typer.Argument(
-        "npm",
-        help="The node command to execute",
-    )
-):
-    args = ctx.args
+    command = ctx.args[0]
+    args = ctx.args[1:]
 
     result = subprocess.run(
         [_node_cmd(command), *args],
@@ -28,10 +19,15 @@ def main(
     )
 
     if result.returncode != 0:
-        raise NodeError(result.stderr)
+        raise NodeError(result.stderr or result.stdout)
 
     typer.echo(result.stdout)
 
 
 def node_entry(app: typer.Typer):
-    app.add_typer(node, name="node")
+    app.command(
+        context_settings={
+            "allow_extra_args": True,
+            "ignore_unknown_options": True,
+        }
+    )(node)

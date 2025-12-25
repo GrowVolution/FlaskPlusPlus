@@ -21,10 +21,16 @@ def _get_cli_data():
     return tailwind_cli[selector], selector
 
 
-def _tailwind_cmd():
+def _tailwind_cmd() -> str:
+    tw = "tailwind"
     if os.name == "nt":
-        return str(home / "tailwind.exe")
-    return str(home / "tailwind")
+        tw += ".exe"
+
+    executable = home / tw
+    if not executable.exists():
+        raise TailwindError("Missing tailwind cli executable.")
+
+    return str(executable)
 
 
 def generate_tailwind_css(app: Flask):
