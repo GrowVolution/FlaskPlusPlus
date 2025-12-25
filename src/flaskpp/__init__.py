@@ -152,7 +152,7 @@ class FlaskPP(Flask):
         self.static_url_path = f"{self.url_prefix}/static"
 
         if enabled("FRONTEND_ENGINE"):
-            from flaskpp.fpp_node.vite import Frontend
+            from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context_processor(lambda: {
                 "vite_main": engine.vite
@@ -237,7 +237,7 @@ class Module(Blueprint):
                 log("warn", f"Failed to initialize models for {self.name}: {e}")
 
         if enabled("FRONTEND_ENGINE"):
-            from flaskpp.fpp_node.vite import Frontend
+            from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context["vite"] = engine.vite
             self.frontend_engine = engine

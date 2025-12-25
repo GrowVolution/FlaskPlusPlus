@@ -8,7 +8,7 @@ from pathlib import Path
 import typer, subprocess, json, re, requests, os
 
 from flaskpp.fpp_node import home, _node_cmd, _node_env
-from flaskpp.utils import enabled, is_port_free, posix_path
+from flaskpp.utils import enabled, is_port_free
 from flaskpp.utils.debugger import exception
 
 
@@ -30,7 +30,8 @@ Manifest = Dict[str, ManifestChunk]
 package_json = """
 {
   "name": "fpp-vite",
-  "version": "0.0.2",
+  "version": "0.0.3",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -114,7 +115,9 @@ if (el) {
 """
 
 vite_tw = """
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @theme {
   /* ... */
@@ -225,8 +228,8 @@ class Frontend(Blueprint):
         safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", parent.name)
         conf_name = f"vite.config.{safe_name}.js"
         (home / conf_name).write_text(vite_conf.format(
-            root=posix_path(root),
-            entry_point=posix_path(main)
+            root=Path(os.path.relpath(root, start=home)).as_posix(),
+            entry_point=Path(os.path.relpath(main, start=home)).as_posix()
         ))
         conf_params = ["--config", conf_name]
         if not main.exists():
