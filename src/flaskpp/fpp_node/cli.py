@@ -1,6 +1,6 @@
 import typer, subprocess, os
 
-from flaskpp.fpp_node import _node_cmd, NodeError
+from flaskpp.fpp_node import _node_cmd, _node_env, NodeError
 
 
 def node(ctx: typer.Context):
@@ -14,14 +14,11 @@ def node(ctx: typer.Context):
     result = subprocess.run(
         [_node_cmd(command), *args],
         cwd=os.getcwd(),
-        capture_output=True,
-        text=True,
+        env=_node_env(),
     )
 
     if result.returncode != 0:
-        raise NodeError(result.stderr or result.stdout)
-
-    typer.echo(result.stdout)
+        raise NodeError("Node command failed.")
 
 
 def node_entry(app: typer.Typer):

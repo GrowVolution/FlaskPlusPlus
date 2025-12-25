@@ -12,13 +12,11 @@ def tailwind(ctx: typer.Context):
 
     result = subprocess.run(
         [_tailwind_cmd(), *args],
-        cwd=os.getcwd(),
-        capture_output=True,
-        text=True,
+        cwd=os.getcwd()
     )
 
     if result.returncode != 0:
-        raise TailwindError(result.stderr)
+        raise TailwindError("Tailwind command failed.")
 
     typer.echo(result.stdout)
 

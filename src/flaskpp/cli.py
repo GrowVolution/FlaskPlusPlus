@@ -8,7 +8,7 @@ from flaskpp.utils.run import run_entry
 from flaskpp.utils.service_registry import registry_entry
 from flaskpp.tailwind import setup_tailwind
 from flaskpp.fpp_node import load_node
-from flaskpp.fpp_node.vite import prepare_vite
+from flaskpp.fpp_node.fpp_vite import prepare_vite
 from flaskpp.fpp_node.cli import node_entry
 from flaskpp.tailwind.cli import tailwind_entry
 
