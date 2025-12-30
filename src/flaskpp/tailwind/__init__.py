@@ -33,33 +33,40 @@ def _tailwind_cmd() -> str:
     return str(executable)
 
 
+def generate_asset(in_file: Path, out_file: Path, cwd: Path):
+    result = subprocess.run(
+        [_tailwind_cmd(),
+         "-i", str(in_file),
+         "-o", str(out_file),
+         "--cwd", str(cwd),
+         "--minify"],
+        cwd=cwd
+    )
+    if result.returncode != 0:
+        raise TailwindError(f"Failed to generate {out_file}")
+
+
 def generate_tailwind_css(app: Flask):
     out =  (home.parent / "app" / "static" / "css" / "tailwind.css")
 
     if not out.exists():
-        in_file = out.parent / "tailwind_raw.css"
-        result = subprocess.run(
-            f'"{_tailwind_cmd()}" -i "{in_file}" -o "{out}" --minify',
-            cwd=home.parent,
-            shell=True
+        generate_asset(
+            out.parent / "tailwind_raw.css",
+            out,
+            home.parent
         )
-        if result.returncode != 0:
-            raise TailwindError(f"Failed to generate {out}")
 
     root = Path(app.root_path).resolve()
-
     for d in root.rglob("static/css"):
         in_file = d / "tailwind_raw.css"
         if not in_file.exists():
             continue
 
-        result = subprocess.run(
-            f'"{_tailwind_cmd()}" -i "{in_file}" -o "{out}" --minify',
-            cwd=d,
-            shell=True
+        generate_asset(
+            in_file,
+            d / "tailwind.css",
+            d
         )
-        if result.returncode != 0:
-            raise TailwindError(f"Failed to generate {d / 'tailwind.css'}")
 
 
 def setup_tailwind():
