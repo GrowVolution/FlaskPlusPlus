@@ -138,7 +138,7 @@ def prepare_vite():
     ) + "/**/vite/src"
     if not ts_conf_file.exists():
         ts_conf_file.write_text(ts_conf_template.format(
-            include=tsc_path
+            include=tsc_path.replace("\\", "/")
         ))
     else:
         ts_conf = json.loads(ts_conf_file.read_text())

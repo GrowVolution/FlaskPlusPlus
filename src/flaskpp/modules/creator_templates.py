@@ -94,12 +94,3 @@ tailwind_raw = """
     /* ... */
 }
 """
-
-module_manifest = """
-{{
-  "name": "{name}",
-  "description": "{description}",
-  "version": "{version}",
-  "author": "{author}"
-}}
-"""

@@ -1,6 +1,6 @@
 from git import Repo, exc
 from pathlib import Path
-import typer, shutil
+import typer, shutil, json
 
 from flaskpp.utils import prompt_yes_no, sanitize_text
 from flaskpp.modules import module_home, creator_templates
@@ -56,14 +56,16 @@ def create(
         module_dst.unlink()
     module_dst.mkdir(exist_ok=True)
 
-    manifest = creator_templates.module_manifest.format(
-        name=sanitize_text(input("Enter the name of your module: ")),
-        description=sanitize_text(input("Describe your module briefly: ")),
-        version=sanitize_text(input("Enter the version of your module: ")),
-        author=sanitize_text(input("Enter your name or nickname: "))
-    )
+    manifest = {
+        "name": sanitize_text(input("Enter the name of your module: ")),
+        "description": sanitize_text(input("Describe your module briefly: ")),
+        "version": sanitize_text(input("Enter the version of your module: ")),
+        "author": sanitize_text(input("Enter your name or nickname: "))
+    }
     typer.echo(typer.style(f"Writing manifest...", bold=True))
-    (module_dst / "manifest.json").write_text(manifest)
+    (module_dst / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False)
+    )
 
     typer.echo(typer.style(f"Creating basic structure...", bold=True))
     (module_dst / "handling").mkdir(exist_ok=True)
