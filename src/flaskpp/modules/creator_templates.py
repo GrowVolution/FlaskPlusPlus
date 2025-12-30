@@ -86,7 +86,7 @@ def init_models():
 """
 
 tailwind_raw = """
-@import "tailwindcss";
+@import "tailwindcss" source("../../");
 
 @source not "../../vite";
 

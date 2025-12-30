@@ -14,7 +14,7 @@ def node(ctx: typer.Context):
     result = subprocess.run(
         [_node_cmd(command), *args],
         cwd=os.getcwd(),
-        env=_node_env(),
+        env=_node_env()
     )
 
     if result.returncode != 0:

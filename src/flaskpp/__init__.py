@@ -1,4 +1,4 @@
-from flask import Flask, Blueprint, render_template as _render_template, url_for
+from flask import Flask, Blueprint, render_template as _render_template, url_for, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 from markupsafe import Markup
 from threading import Thread
@@ -65,7 +65,11 @@ def set_default_handlers(app):
 
 class FlaskPP(Flask):
     def __init__(self, import_name: str, config_name: str):
-        super().__init__(import_name)
+        super().__init__(
+            import_name,
+            static_folder=None,
+            static_url_path=None
+        )
         self.config.from_object(CONFIG_MAP.get(config_name, DefaultConfig))
 
         start_session(enabled("DEBUG_MODE"))
@@ -150,6 +154,11 @@ class FlaskPP(Flask):
         self.url_prefix = ""
         register_modules(self)
         self.static_url_path = f"{self.url_prefix}/static"
+        self.add_url_rule(
+            f"{self.static_url_path}/<path:filename>",
+            endpoint="static",
+            view_func=lambda filename: send_from_directory(Path(self.root_path) / "static", filename)
+        )
 
         if enabled("FRONTEND_ENGINE"):
             from flaskpp.fpp_node.fpp_vite import Frontend

@@ -142,10 +142,11 @@ app = create_app().to_asgi()
     """)
 
     (css / "tailwind_raw.css").write_text("""
-@import "tailwindcss";
+@import "tailwindcss" source("../../");
 
 @source not "../../.venv";
 @source not "../../venv";
+
 @source not "../../vite";
 @source not "../../modules";
 
