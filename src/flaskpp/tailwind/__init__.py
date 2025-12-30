@@ -37,11 +37,11 @@ def generate_tailwind_css(app: Flask):
     out =  (home.parent / "app" / "static" / "css" / "tailwind.css")
 
     if not out.exists():
+        in_file = out.parent / "tailwind_raw.css"
         result = subprocess.run(
-            [_tailwind_cmd(),
-             "-i", str(out.parent / "tailwind_raw.css"),
-             "-o", str(out), "--minify"],
-            cwd=home.parent
+            f'"{_tailwind_cmd()}" -i "{in_file}" -o "{out}" --minify',
+            cwd=home.parent,
+            shell=True
         )
         if result.returncode != 0:
             raise TailwindError(f"Failed to generate {out}")
@@ -54,10 +54,9 @@ def generate_tailwind_css(app: Flask):
             continue
 
         result = subprocess.run(
-            [_tailwind_cmd(),
-             "-i", str(in_file),
-             "-o", str(d / "tailwind.css"), "--minify"],
-            cwd=d
+            f'"{_tailwind_cmd()}" -i "{in_file}" -o "{out}" --minify',
+            cwd=d,
+            shell=True
         )
         if result.returncode != 0:
             raise TailwindError(f"Failed to generate {d / 'tailwind.css'}")

@@ -127,9 +127,7 @@
     .footer-inner-div {
         @apply max-w-7xl mx-auto px-4 py-3 text-center opacity-80;
     }
-}
 
-@layer utilities {
     .wrap-center {
         @apply flex items-center justify-center;
     }
