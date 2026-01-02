@@ -1,16 +1,26 @@
 from pathlib import Path
 from tqdm import tqdm
-import os, platform, requests, typer
+import os, platform, requests, typer, subprocess
 
 home = Path(__file__).parent
 node_standalone = {
     "linux": "https://nodejs.org/dist/v24.11.1/node-v24.11.1-linux-{architecture}.tar.xz",
-    "win": "https://nodejs.org/dist/v24.11.1/node-v24.11.1-win-{architecture}.zip"
+    "windows": "https://nodejs.org/dist/v24.11.1/node-v24.11.1-win-{architecture}.zip",
+    "darwin": "https://nodejs.org/dist/v24.12.0/node-v24.12.0-darwin-{architecture}.tar.gz"
 }
 
 
+def _sys_node() -> tuple[bool, str]:
+    result = subprocess.run(
+        ["npm", "--version"],
+        capture_output=True,
+        text=True
+    )
+    return result.returncode == 0, result.stdout or ""
+
+
 def _get_node_data():
-    selector = "win" if os.name == "nt" else "linux"
+    selector = platform.system().lower()
 
     machine = platform.machine().lower()
     arch = "x64" if machine == "x86_64" or machine == "amd64" else "arm64"
@@ -21,7 +31,9 @@ def _get_node_data():
 def _node_cmd(cmd: str) -> str:
     node = home / "node"
     if not node.exists():
-        raise NodeError("Missing node directory.")
+        if not _sys_node()[0]:
+            raise NodeError("Missing node installation / integration... Try running 'fpp init' inside a project directory.")
+        return cmd
 
     if os.name == "nt":
         return str(node / f"{cmd}.cmd")
@@ -40,8 +52,14 @@ def _node_env() -> dict:
 
 
 def load_node():
+    sys_node = _sys_node()
+    if sys_node[0]:
+        typer.echo(f"Node.js version {sys_node[1]} is already installed... Skipping integration.")
+        return
+
     data = _get_node_data()
-    file_type = "zip" if data[1] == "win" else "tar.xz"
+    file_type = "zip" if data[1] == "windows" else (
+        "tar.xz" if data[1] == "linux" else "tar.gz")
     dest = home / f"node.{file_type}"
     bin_folder = home / "node"
 

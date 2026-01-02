@@ -5,19 +5,22 @@ import os, platform, typer, requests, subprocess
 
 home = Path(__file__).parent.resolve()
 tailwind_cli = {
-    "linux": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.17/tailwindcss-linux-{architecture}",
-    "win": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.17/tailwindcss-windows-x64.exe"
+    "linux": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.18/tailwindcss-linux-{architecture}",
+    "windows": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.18/tailwindcss-windows-x64.exe",
+    "darwin": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.18/tailwindcss-macos-{architecture}"
 }
 
 
 def _get_cli_data():
-    selector = "win" if os.name == "nt" else "linux"
+    selector = platform.system().lower()
 
     machine = platform.machine().lower()
     arch = "x64" if machine == "x86_64" or machine == "amd64" else "arm64"
 
-    if selector == "linux":
+    if selector != "windows":
         return tailwind_cli[selector].format(architecture=arch), selector
+    elif arch == "arm64":
+        raise TailwindError("ARM Architecture is not supported on Windows.")
     return tailwind_cli[selector], selector
 
 
@@ -71,7 +74,7 @@ def generate_tailwind_css(app: Flask):
 
 def setup_tailwind():
     data = _get_cli_data()
-    file_type = ".exe" if data[1] == "win" else ""
+    file_type = ".exe" if data[1] == "windows" else ""
     dest = home / f"tailwind{file_type}"
 
     if dest.exists():

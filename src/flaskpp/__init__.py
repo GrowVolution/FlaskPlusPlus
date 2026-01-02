@@ -13,7 +13,7 @@ from flaskpp.app.config import CONFIG_MAP
 from flaskpp.app.config.default import DefaultConfig
 from flaskpp.app.utils.processing import handlers
 from flaskpp.app.i18n import init_i18n
-from flaskpp.modules import register_modules, ManifestError, ModuleError
+from flaskpp.modules import register_modules, version_check, ManifestError, ModuleError
 from flaskpp.tailwind import generate_tailwind_css
 from flaskpp.utils import enabled
 from flaskpp.utils.debugger import start_session, log, exception
@@ -198,7 +198,7 @@ class Module(Blueprint):
         self.root_path = Path(file).parent
         manifest = self.root_path / "manifest.json"
         self.info = self._load_manifest(manifest)
-        self.safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", self.name)
+        self.safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", self.name).lower()
         self.extensions = required_extensions or []
         self.context = {
             "NAME": self.safe_name,
@@ -284,27 +284,11 @@ class Module(Blueprint):
 
     @property
     def version(self) -> str:
-        version_str = self.info.get("version", "").lower().strip()
-        if not version_str:
-            raise ManifestError("Module version not defined.")
+        check = version_check(self.info.get("version", ""))
+        if not check[0]:
+            raise ManifestError(check[1])
 
-        if " " in version_str and not (version_str.endswith("alpha") or version_str.endswith("beta")):
-            raise ManifestError("Invalid version string format.")
-
-        if version_str.startswith("v"):
-            version_str = version_str[1:]
-
-        try:
-            v_numbers = version_str.split(" ")[0].split(".")
-            if len(v_numbers) > 3:
-                raise ManifestError("Too many version numbers.")
-
-            for v_number in v_numbers:
-                int(v_number)
-        except ValueError:
-            raise ManifestError("Invalid version numbers.")
-
-        return version_str
+        return check[1]
 
     def render_template(self, template: str, **context) -> str:
         render_name = template if self.home else f"{self.safe_name}/{template}"

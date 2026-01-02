@@ -18,7 +18,7 @@ def node(ctx: typer.Context):
     )
 
     if result.returncode != 0:
-        raise NodeError("Node command failed.")
+        raise NodeError("Node command execution failed.")
 
 
 def node_entry(app: typer.Typer):
