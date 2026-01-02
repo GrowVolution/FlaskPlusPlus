@@ -113,12 +113,12 @@ def register_modules(app):
         try:
             home = os.getenv("HOME_MODULE", "").lower() == mod_name.lower()
             module.enable(app, home)
-            loader_context[mod_name] = FileSystemLoader(f"modules/{mod_name}/templates")
+            loader_context[module.safe_name] = FileSystemLoader(f"modules/{mod_name}/templates")
             if home:
-                primary_loader = loader_context[mod_name]
-            log("info", f"Registered module '{mod_name}' as {'home' if home else 'path'}.")
+                primary_loader = loader_context[module.safe_name]
+            log("info", f"Registered module '{module.name}' as {'home' if home else 'path'}.")
         except Exception as e:
-            exception(e, f"Failed registering module '{mod_name}'.")
+            exception(e, f"Failed registering module '{module.name}'.")
 
     loaders = []
     if primary_loader:
@@ -130,6 +130,36 @@ def register_modules(app):
     )
 
     app.jinja_loader = ChoiceLoader(loaders)
+
+
+def version_check(version: str) -> tuple[bool, str]:
+    version_str = version.lower().strip()
+    if not version_str:
+        return False, "Module version not defined."
+
+    first_char_invalid = False
+    try:
+        if version_str.startswith("v"):
+            version_str = version_str[1:]
+        int(version_str[0])
+    except ValueError:
+        first_char_invalid = True
+
+    if  first_char_invalid \
+        or (" " in version_str and not (version_str.endswith("alpha") or version_str.endswith("beta"))):
+        return False, "Invalid version string format."
+
+    try:
+        v_numbers = version_str.split(" ")[0].split(".")
+        if len(v_numbers) > 3:
+            return False, "Too many version numbers."
+
+        for v_number in v_numbers:
+            int(v_number)
+    except ValueError:
+        return False, "Invalid version numbers."
+
+    return True, version_str
 
 
 class ModuleError(Exception):

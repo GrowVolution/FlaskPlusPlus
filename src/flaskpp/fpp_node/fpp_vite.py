@@ -219,7 +219,10 @@ class Frontend(Blueprint):
         main = root / "main.js"
         tailwind = src / "tailwind_raw.css"
         safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", parent.name)
-        conf_name = f"vite.config.{safe_name}.js"
+        app_name = os.getenv("APP_NAME")
+        if not app_name:
+            raise ViteError("Missing APP_NAME environment variable.")
+        conf_name = f"vite.config.{app_name}.{safe_name}.js"
         (home / conf_name).write_text(vite_conf.format(
             root=Path(os.path.relpath(root, start=home)).as_posix(),
             entry_point=Path(os.path.relpath(main, start=home)).as_posix()
