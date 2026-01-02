@@ -2,6 +2,8 @@ from pathlib import Path
 from tqdm import tqdm
 import os, platform, requests, typer, subprocess
 
+from flaskpp.exceptions import NodeError
+
 home = Path(__file__).parent
 node_standalone = {
     "linux": "https://nodejs.org/dist/v24.11.1/node-v24.11.1-linux-{architecture}.tar.xz",
@@ -95,7 +97,3 @@ def load_node():
     extracted_folder.rename(bin_folder)
 
     dest.unlink()
-
-
-class NodeError(Exception):
-    pass

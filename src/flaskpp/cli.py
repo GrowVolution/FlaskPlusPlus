@@ -166,7 +166,7 @@ app = create_app().to_asgi()
         sys.executable, "-m", babel_cli, "extract",
         "-F", str(cli_home / "babel.cfg"),
         "-o", pot,
-        ".", str(cli_home.resolve())
+        os.getcwd(), str(cli_home.resolve())
     ])
 
     if has_catalogs:
