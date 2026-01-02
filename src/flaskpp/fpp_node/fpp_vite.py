@@ -11,6 +11,7 @@ from flaskpp.fpp_node import home, _node_cmd, _node_env
 from flaskpp.tailwind import generate_asset
 from flaskpp.utils import enabled, is_port_free
 from flaskpp.utils.debugger import exception
+from flaskpp.exceptions import ViteError
 
 
 @dataclass
@@ -340,7 +341,3 @@ class Frontend(Blueprint):
     @property
     def built(self) -> bool:
         return not enabled("DEBUG_MODE") and self.build.returncode == 0
-
-
-class ViteError(Exception):
-    pass

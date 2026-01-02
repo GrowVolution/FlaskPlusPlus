@@ -1,5 +1,5 @@
-from pathlib import Path
-import os, string, random, socket
+from typing import Callable
+import os, string, random, socket, inspect
 
 
 def random_code(length: int = 6) -> str:
@@ -29,3 +29,22 @@ def is_port_free(port, host="127.0.0.1") -> bool:
 
 def sanitize_text(value: str) -> str:
     return value.encode("utf-8", "ignore").decode("utf-8")
+
+
+def takes_arg(fn: Callable, arg: str) -> bool:
+    sig = inspect.signature(fn)
+    return arg in sig.parameters
+
+
+def arg_count(fn: Callable) -> int:
+    sig = inspect.signature(fn)
+
+    params = [
+        p for p in sig.parameters.values()
+        if p.kind in (
+            p.POSITIONAL_ONLY,
+            p.POSITIONAL_OR_KEYWORD,
+            p.KEYWORD_ONLY,
+        )
+    ]
+    return len(params)

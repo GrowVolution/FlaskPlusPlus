@@ -3,6 +3,8 @@ from pathlib import Path
 from tqdm import tqdm
 import os, platform, typer, requests, subprocess
 
+from flaskpp.exceptions import TailwindError
+
 home = Path(__file__).parent.resolve()
 tailwind_cli = {
     "linux": "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.18/tailwindcss-linux-{architecture}",
@@ -98,7 +100,3 @@ def setup_tailwind():
         os.system(f"chmod +x {str(dest)}")
 
     typer.echo(typer.style(f"Tailwind successfully setup.", fg=typer.colors.GREEN, bold=True))
-
-
-class TailwindError(Exception):
-    pass

@@ -1,6 +1,7 @@
 import typer, subprocess, os
 
-from flaskpp.tailwind import _tailwind_cmd, TailwindError
+from flaskpp.tailwind import _tailwind_cmd
+from flaskpp.exceptions import TailwindError
 
 
 def tailwind(ctx: typer.Context):

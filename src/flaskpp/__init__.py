@@ -7,16 +7,19 @@ from asgiref.wsgi import WsgiToAsgi
 from socketio import ASGIApp
 from pathlib import Path
 from importlib import import_module
+from typing import Callable
 import os, json, re
 
 from flaskpp.app.config import CONFIG_MAP
 from flaskpp.app.config.default import DefaultConfig
 from flaskpp.app.utils.processing import handlers
 from flaskpp.app.i18n import init_i18n
-from flaskpp.modules import register_modules, version_check, ManifestError, ModuleError
+from flaskpp.modules import register_modules, version_check
 from flaskpp.tailwind import generate_tailwind_css
-from flaskpp.utils import enabled
+from flaskpp.utils import enabled, takes_arg, arg_count
+from flaskpp.utils.lifespan import LifespanWrapper
 from flaskpp.utils.debugger import start_session, log, exception
+from flaskpp.exceptions import ManifestError, ModuleError, EventHookException
 
 _fpp_default = Blueprint("fpp_default", __name__,
                          static_folder=(Path(__file__).parent / "app" / "static").resolve(),
@@ -174,18 +177,50 @@ class FlaskPP(Flask):
             db_updater.start()
 
         self._asgi_app = None
+        self._startup_hooks = []
+        self._shutdown_hooks = []
 
-    def to_asgi(self) -> WsgiToAsgi | ASGIApp:
+    def to_asgi(self) -> LifespanWrapper | ASGIApp:
         if self._asgi_app is not None:
             return self._asgi_app
 
-        app = WsgiToAsgi(self)
+        wsgi = WsgiToAsgi(self)
+
+        async def on_startup():
+            self._startup()
+
+        async def on_shutdown():
+            self._shutdown()
+
+        app = LifespanWrapper(wsgi, on_startup, on_shutdown)
+
         if enabled("EXT_SOCKET"):
             from flaskpp.app.extensions import socket
             self._asgi_app = ASGIApp(socket, other_asgi_app=app)
-            return self._asgi_app
-        self._asgi_app = app
-        return app
+        else:
+            self._asgi_app = app
+
+        return self._asgi_app
+
+    def on_startup(self, fn: Callable) -> Callable:
+        if arg_count(fn) > 0:
+            raise EventHookException("Startup hooks must not receive any arguments.")
+        self._startup_hooks.append(fn)
+        return fn
+
+    def on_shutdown(self, fn: Callable) -> Callable:
+        if arg_count(fn) > 0:
+            raise EventHookException("Shutdown hooks must not receive any arguments.")
+        self._shutdown_hooks.append(fn)
+        return fn
+
+    def _startup(self):
+        for hook in self._startup_hooks:
+            hook()
+
+    def _shutdown(self):
+        for hook in self._shutdown_hooks:
+            hook()
 
 
 class Module(Blueprint):
@@ -207,6 +242,7 @@ class Module(Blueprint):
 
         from flaskpp.app.extensions import require_extensions
         self.enable = require_extensions(*self.extensions)(self._enable)
+        self._on_enable = None
 
         super().__init__(
             self.safe_name,
@@ -255,6 +291,10 @@ class Module(Blueprint):
             **self.context,
             tailwind=Markup(f"<link rel='stylesheet' href='{url_for(f'{self.safe_name}.static', filename='css/tailwind.css')}'>")
         ))
+
+        if self._on_enable is not None:
+            self._on_enable(app)
+
         app.register_blueprint(self)
 
     def _load_manifest(self, manifest: Path) -> dict:
@@ -293,3 +333,9 @@ class Module(Blueprint):
     def render_template(self, template: str, **context) -> str:
         render_name = template if self.home else f"{self.safe_name}/{template}"
         return _render_template(render_name, **context)
+
+    def on_enable(self, fn: Callable) -> Callable:
+        if not takes_arg(fn, "app") or arg_count(fn) != 1:
+            raise EventHookException(f"{self.import_name}.on_enable must take exactly one argument: 'app'.")
+        self._on_enable = fn
+        return fn

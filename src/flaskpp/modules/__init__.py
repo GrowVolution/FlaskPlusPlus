@@ -5,6 +5,7 @@ from configparser import ConfigParser
 import os, typer
 
 from flaskpp.utils.debugger import log, exception
+from flaskpp.exceptions import ManifestError
 
 home = Path.cwd()
 module_home = home / "modules"
@@ -160,11 +161,3 @@ def version_check(version: str) -> tuple[bool, str]:
         return False, "Invalid version numbers."
 
     return True, version_str
-
-
-class ModuleError(Exception):
-    pass
-
-
-class ManifestError(ModuleError):
-    pass
