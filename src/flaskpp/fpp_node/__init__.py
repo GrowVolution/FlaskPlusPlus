@@ -13,11 +13,14 @@ node_standalone = {
 
 
 def _sys_node() -> tuple[bool, str]:
-    result = subprocess.run(
-        ["npm", "--version"],
-        capture_output=True,
-        text=True
-    )
+    try:
+        result = subprocess.run(
+            ["npm", "--version"],
+            capture_output=True,
+            text=True
+        )
+    except FileNotFoundError:
+        return False, ""
     return result.returncode == 0, result.stdout or ""
 
 

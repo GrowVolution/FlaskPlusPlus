@@ -66,6 +66,9 @@ def base_config():
 
         "features": {
             "default_FPP_PROCESSING": 1,
+            "default_FPP_I18N_FALLBACK": 1,
+            "default_AUTOGENERATE_TAILWIND_CSS": 1,
+            "default_FPP_MODULES": 1,
             "default_FRONTEND_ENGINE": 1,
         },
 

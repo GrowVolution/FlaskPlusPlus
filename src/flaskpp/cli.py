@@ -90,7 +90,12 @@ def main_callback(
 
 
 @app.command()
-def init():
+def init(
+    skip_babel: bool = typer.Option(False, "--skip-babel"),
+    skip_tailwind: bool = typer.Option(False, "--skip-tailwind"),
+    skip_node: bool = typer.Option(False, "--skip-node"),
+    skip_vite: bool = typer.Option(False, "--skip-vite"),
+):
     typer.echo(typer.style("Creating default structure...", bold=True))
 
     from flaskpp.utils.setup import conf_path
@@ -119,10 +124,14 @@ from flaskpp import FlaskPP
             
 def create_app(config_name: str = "default"):
     app = FlaskPP(__name__, config_name)
+
     # TODO: Extend the Flask++ default setup with your own factory
+
     return app
 
-app = create_app().to_asgi()
+if __name__ == "__main__":
+    app = create_app()
+    app.start()
         """)
 
     (templates / "index.html").write_text("""
@@ -155,44 +164,45 @@ app = create_app().to_asgi()
 }
     """)
 
-    typer.echo(typer.style("Generation default translations...", bold=True))
+    if not skip_babel:
+        typer.echo(typer.style("Generating default translations...", bold=True))
 
-    pot = "messages.pot"
-    trans = "translations"
-    babel_cli = "babel.messages.frontend"
-    has_catalogs = any(translations.glob("*/LC_MESSAGES/*.po"))
+        pot = "messages.pot"
+        trans = "translations"
+        babel_cli = "babel.messages.frontend"
+        has_catalogs = any(translations.glob("*/LC_MESSAGES/*.po"))
 
-    subprocess.run([
-        sys.executable, "-m", babel_cli, "extract",
-        "-F", str(cli_home / "babel.cfg"),
-        "-o", pot,
-        os.getcwd(), str(cli_home.resolve())
-    ])
-
-    if has_catalogs:
         subprocess.run([
-            sys.executable, "-m", babel_cli, "update",
-            "-i", pot,
+            sys.executable, "-m", babel_cli, "extract",
+            "-F", str(cli_home / "babel.cfg"),
+            "-o", pot,
+            os.getcwd(), str(cli_home.resolve())
+        ])
+
+        if has_catalogs:
+            subprocess.run([
+                sys.executable, "-m", babel_cli, "update",
+                "-i", pot,
+                "-d", trans
+            ])
+
+        else:
+            subprocess.run([
+                sys.executable, "-m", babel_cli, "init",
+                "-i", pot,
+                "-d", trans,
+                "-l", "en"
+            ])
+
+        subprocess.run([
+            sys.executable, "-m", babel_cli, "compile",
             "-d", trans
         ])
 
-    else:
-        subprocess.run([
-            sys.executable, "-m", babel_cli, "init",
-            "-i", pot,
-            "-d", trans,
-            "-l", "en"
-        ])
+    if not skip_tailwind: setup_tailwind()
 
-    subprocess.run([
-        sys.executable, "-m", babel_cli, "compile",
-        "-d", trans
-    ])
-
-    setup_tailwind()
-
-    load_node()
-    prepare_vite()
+    if not skip_node: load_node()
+    if not skip_vite: prepare_vite()
 
     typer.echo(typer.style("Flask++ project successfully initialized.", fg=typer.colors.GREEN, bold=True))
 

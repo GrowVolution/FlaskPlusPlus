@@ -1,18 +1,18 @@
 {% extends "base_example.html" %}
-{% block title %}{{ _('Not found') }}{% endblock %}
+{% block title %}{{ _('NOT_FOUND_TITLE') }}{% endblock %}
 {% block content %}
-    <div class="wrap-center">
+    <div class="wrap-center h-screen">
         <div class="w-fit max-w-md rounded-xl bg-white shadow-lg border border-slate-800 p-8 text-center">
             <h1 class="text-2xl font-semibold text-slate-800">404</h1>
             <p class="mt-2 text-slate-600 text-lg">
-                {{ _("We are sorry, but the requested page doesn't exist.") }}
+                {{ _("NOT_FOUND_MSG") }}
             </p>
 
             <a href="/"
                class="inline-block mt-6 px-5 py-2 rounded-lg
                       bg-slate-200 text-light font-medium
                       hover:bg-slate-300 transition shadow">
-                {{ _("Back Home") }}
+                {{ _("BACK_HOME") }}
             </a>
         </div>
     </div>

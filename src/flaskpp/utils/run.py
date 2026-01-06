@@ -53,6 +53,12 @@ def _prompt_port(app_name: str, suggested: int) -> tuple[int, int]:
 
 def start_app(conf_file: Path, default_port: int, reload: bool = False) -> int:
     app_name = conf_file.stem
+    if not (root_path / "main.py").exists():
+        typer.echo(typer.style(
+            f"Cannot run '{app_name}': Missing main.py inside working directory.",
+            fg=typer.colors.RED, bold=True
+        ))
+
     base_env = _env_from_conf(conf_file)
     base_env["APP_NAME"] = app_name
 
@@ -73,12 +79,7 @@ def start_app(conf_file: Path, default_port: int, reload: bool = False) -> int:
     log_file = _ensure_log_file(app_name)
 
     proc = subprocess.Popen(
-        [
-            sys.executable, "-m", "uvicorn",
-            "--host", "0.0.0.0",
-            "--port", f"{port}",
-            "main:app",
-        ],
+        [sys.executable, "main.py"],
         stdout=open(log_file, "w"),
         stderr=subprocess.STDOUT,
         env=base_env,

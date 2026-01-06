@@ -32,7 +32,6 @@ Manifest = Dict[str, ManifestChunk]
 package_json = """
 {
   "name": "fpp-vite",
-  "version": "0.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -204,7 +203,7 @@ def resolve_entry(manifest: Manifest, entry: str):
 class Frontend(Blueprint):
     from flaskpp import FlaskPP, Module
     def __init__(self, parent: FlaskPP | Module):
-        super().__init__(f"{parent.safe_name if hasattr(parent, "safe_name") else parent.name}_vite", parent.import_name)
+        super().__init__(f"{parent.name}_vite", parent.import_name)
         prefix = "/vite"
         self.prefix = f"{parent.url_prefix}{prefix}" if parent.url_prefix is not None else prefix
         self.url_prefix = self.prefix if isinstance(parent, self.FlaskPP) else prefix
@@ -219,11 +218,10 @@ class Frontend(Blueprint):
         src.mkdir(exist_ok=True)
         main = root / "main.js"
         tailwind = src / "tailwind_raw.css"
-        safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", parent.name)
         app_name = os.getenv("APP_NAME")
         if not app_name:
             raise ViteError("Missing APP_NAME environment variable.")
-        conf_name = f"vite.config.{app_name}.{safe_name}.js"
+        conf_name = f"vite.config.{app_name}.{parent.name}.js"
         (home / conf_name).write_text(vite_conf.format(
             root=Path(os.path.relpath(root, start=home)).as_posix(),
             entry_point=Path(os.path.relpath(main, start=home)).as_posix()

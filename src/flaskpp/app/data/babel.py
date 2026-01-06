@@ -19,17 +19,17 @@ class I18nMessage(db.Model):
         self.text = text
 
 
-def add_entry(locale: str, key: str, text: str, domain: str = "messages"):
+def add_entry(locale: str, key: str, text: str, domain: str = "messages", auto_commit: bool = True):
     entry = I18nMessage(domain, locale, key, text)
-    add_model(entry)
+    add_model(entry, auto_commit)
 
 
-def get_entry(key: str, domain: str = "messages"):
-    return I18nMessage.query.filter_by(key=key, domain=domain).first()
+def get_entry(key: str, locale: str, domain: str = "messages"):
+    return I18nMessage.query.filter_by(key=key, locale=locale, domain=domain).first()
 
 
-def get_entries(**filters):
-    return I18nMessage.query.filter_by(**filters).all()
+def get_entries(*filters, **filter_by):
+    return I18nMessage.query.filter(*filters).filter_by(**filter_by).all()
 
 
 def remove_entry(key: str, locale: str, domain: str = "messages"):
@@ -38,8 +38,8 @@ def remove_entry(key: str, locale: str, domain: str = "messages"):
         delete_model(entry)
 
 
-def remove_entries(key: str):
-    entries = I18nMessage.query.filter_by(key=key).all()
+def remove_entries(key: str, domain: str = "messages"):
+    entries = I18nMessage.query.filter_by(key=key, domain=domain).all()
     for entry in entries:
         delete_model(entry, False)
     commit()
