@@ -1,7 +1,7 @@
 from secrets import token_hex
 from pathlib import Path
 from configparser import ConfigParser
-import typer, os
+import typer
 
 from flaskpp.utils import prompt_yes_no
 from flaskpp.modules import generate_modlib
@@ -92,7 +92,7 @@ def welcome():
     typer.echo("\n")
 
 
-def app_name(app_number):
+def app_name(app_number: int):
     ans = input(typer.style("Enter the name of your "
                             f"{app_number}{counting_map.get(app_number, 'th')} app: ",
                             bold=True)).strip()
@@ -101,7 +101,7 @@ def app_name(app_number):
     return ans
 
 
-def setup_app(app_number):
+def setup_app(app_number: int):
     config = ConfigParser()
     config.optionxform = str
 

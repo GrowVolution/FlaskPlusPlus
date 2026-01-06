@@ -1,9 +1,12 @@
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from flask import Blueprint
 
 nav_links = {}
 
 
-def autonav_route(blueprint, rule: str, label: str, **route_kwargs) -> Callable:
+def autonav_route(blueprint: "Blueprint", rule: str, label: str, **route_kwargs) -> Callable:
     prefix = blueprint.url_prefix or ""
     full_path = f"{prefix}{rule}"
     nav_links[label] = full_path

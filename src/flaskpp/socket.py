@@ -3,10 +3,13 @@ from werkzeug.http import parse_accept_header
 from werkzeug.datastructures import LanguageAccept
 from contextvars import ContextVar
 from http.cookies import SimpleCookie
-from typing import Callable, Any
+from typing import Callable, Any, TYPE_CHECKING
 
 from flaskpp.utils import enabled, random_code, async_result, decorate
 from flaskpp.utils.debugger import log, exception
+
+if TYPE_CHECKING:
+    from flaskpp import FlaskPP
 
 
 class _EventContext:
@@ -23,7 +26,7 @@ class _EventContext:
 
 
 class FppSocket(AsyncServer):
-    def __init__(self, app = None, default_processing: bool = False,
+    def __init__(self, app: "FlaskPP" = None, default_processing: bool = False,
                  default_event_name: str = "default_event",
                  enable_sid_passing: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
