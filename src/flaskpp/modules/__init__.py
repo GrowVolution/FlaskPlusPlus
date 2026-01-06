@@ -2,14 +2,21 @@ from jinja2 import ChoiceLoader, PrefixLoader, FileSystemLoader
 from pathlib import Path
 from importlib import import_module
 from configparser import ConfigParser
-import os, typer
+from typing import TYPE_CHECKING
+import os, typer, json
 
+from flaskpp.module import basic_checked_data, valid_version
 from flaskpp.utils.debugger import log, exception
 from flaskpp.exceptions import ManifestError
+
+if TYPE_CHECKING:
+    from flask import Flask
+    from flaskpp import FlaskPP
 
 home = Path.cwd()
 module_home = home / "modules"
 conf_path = home / "app_configs"
+_modules = {}
 
 
 def generate_modlib(app_name: str):
@@ -54,7 +61,7 @@ def generate_modlib(app_name: str):
             choice = input("> ").strip()
             try:
                 choice = int(choice) - 1
-                home = choices[choice]
+                home_module = choices[choice]
                 break
             except (ValueError, IndexError):
                 typer.echo(typer.style(
@@ -63,13 +70,13 @@ def generate_modlib(app_name: str):
                     bold=True
                 ))
 
-        config["modules"]["HOME_MODULE"] = home
+        config["modules"]["HOME_MODULE"] = home_module
 
     with open(conf, "w") as f:
         config.write(f)
 
 
-def register_modules(app):
+def register_modules(app: "FlaskPP | Flask"):
     app_name = os.getenv("APP_NAME")
     if not app_name:
         raise RuntimeError("Missing app name variable: APP_NAME")
@@ -112,12 +119,12 @@ def register_modules(app):
             continue
 
         try:
-            home = os.getenv("HOME_MODULE", "").lower() == mod_name.lower()
-            module.enable(app, home)
+            is_home = os.getenv("HOME_MODULE", "").lower() == mod_name.lower()
+            module.enable(app, is_home)
             loader_context[module.name] = FileSystemLoader(f"modules/{mod_name}/templates")
-            if home:
+            if is_home:
                 primary_loader = loader_context[module.name]
-            log("info", f"Registered module '{module.module_name}' as {'home' if home else 'path'}.")
+            log("info", f"Registered module '{module.module_name}' as {'home' if is_home else 'path'}.")
         except Exception as e:
             exception(e, f"Failed registering module '{module.module_name}'.")
 
@@ -133,31 +140,28 @@ def register_modules(app):
     app.jinja_loader = ChoiceLoader(loaders)
 
 
-def version_check(version: str) -> tuple[bool, str]:
-    version_str = version.lower().strip()
-    if not version_str:
-        return False, "Module version not defined."
+def installed_modules(package: Path) -> list[tuple[str, str]]:
+    if _modules.get(package):
+        return _modules[package]
 
-    first_char_invalid = False
-    try:
-        if version_str.startswith("v"):
-            version_str = version_str[1:]
-        int(version_str[0])
-    except ValueError:
-        first_char_invalid = True
+    if not package.name == "modules":
+        raise ValueError(f"Invalid package name '{package.name}'.")
 
-    if  first_char_invalid \
-        or (" " in version_str and not (version_str.endswith("alpha") or version_str.endswith("beta"))):
-        return False, "Invalid version string format."
+    _modules[package] = []
 
-    try:
-        v_numbers = version_str.split(" ")[0].split(".")
-        if len(v_numbers) > 3:
-            return False, "Too many version numbers."
+    for module in package.iterdir():
+        if not module.is_dir():
+            continue
 
-        for v_number in v_numbers:
-            int(v_number)
-    except ValueError:
-        return False, "Invalid version numbers."
+        try:
+            manifest = module / "manifest.json"
+            module_data = basic_checked_data(manifest)
+            version = valid_version(module_data["version"])
+            _modules[package].append(
+                (module_data.get("id", module.name), version)
+            )
+        except (ModuleNotFoundError, FileNotFoundError, AttributeError, ManifestError, json.JSONDecodeError) as e:
+            log("warn", f"Invalid module package '{module.name}' in {package}: {e}.")
+            continue
 
-    return True, version_str
+    return _modules[package]

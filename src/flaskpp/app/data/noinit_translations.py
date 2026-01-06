@@ -56,7 +56,7 @@ _translations_de = {
 }
 
 
-def _add_entries(key, domain):
+def _add_entries(key: str, domain: str):
     add_entry("en", key, _translations_en[key], domain, False)
     add_entry("de", key, _translations_de[key], domain, False)
 

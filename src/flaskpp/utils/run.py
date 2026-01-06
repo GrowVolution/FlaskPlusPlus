@@ -1,10 +1,13 @@
 from pathlib import Path
 from configparser import ConfigParser
 from datetime import datetime
-import subprocess, sys, os, signal
-import typer
+from typing import TYPE_CHECKING
+import subprocess, sys, os, signal, typer
 
 from flaskpp.utils import prompt_yes_no
+
+if TYPE_CHECKING:
+    from types import FrameType
 
 root_path = Path.cwd()
 conf_path = root_path / "app_configs"
@@ -130,7 +133,7 @@ def restart_app(app_name: str):
     _ = start_app(entry["conf"], port)
 
 
-def shutdown(signum=None, frame=None):
+def shutdown(signum: int = None, frame: "FrameType" = None):
     prefix = "S"
     if signum:
         prefix = f"Handling signal SIG{'INT' if signum == signal.SIGINT else 'TERM'}, s"

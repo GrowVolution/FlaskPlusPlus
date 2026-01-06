@@ -1,9 +1,13 @@
 from flask_babelplus import Domain
 from babel.support import Translations
 from flask import Flask, current_app
+from typing import TYPE_CHECKING
 
 from flaskpp.app.extensions import socket
 from flaskpp.app.data.babel import I18nMessage
+
+if TYPE_CHECKING:
+    from flaskpp import FlaskPP
 
 
 class DBMergedTranslations(Translations):
@@ -13,22 +17,22 @@ class DBMergedTranslations(Translations):
         self._domain = domain
         self._locale = locale
 
-    def _db_get(self, msgid):
+    def _db_get(self, msg_id: str) -> str | None:
         row = (
             I18nMessage.query
-            .filter_by(domain=self._domain, locale=self._locale, key=msgid)
+            .filter_by(domain=self._domain, locale=self._locale, key=msg_id)
             .first()
         )
         return row.text if row else None
 
-    def gettext(self, message):
+    def gettext(self, message: str) -> str:
         db_val = self._db_get(message)
         if db_val:
             return db_val
         mo_val = self._wrapped.gettext(message)
         return mo_val
 
-    def ngettext(self, singular, plural, n):
+    def ngettext(self, singular: str, plural: str, n: int) -> str:
         key = plural if n != 1 else singular
         db_val = self._db_get(key)
         if db_val:
@@ -38,11 +42,11 @@ class DBMergedTranslations(Translations):
 
 
 class DBDomain(Domain):
-    def __init__(self, dirname=None, domain="messages"):
+    def __init__(self, dirname: str = None, domain: str = "messages"):
         super().__init__(dirname, domain)
         self.registered_domains = []
 
-    def get_translations(self, domain: str = None):
+    def get_translations(self, domain: str = None) -> DBMergedTranslations:
         from flaskpp.app.utils.translating import get_locale
         locale = get_locale()
         cache = self.get_translations_cache()
@@ -64,7 +68,7 @@ class DBDomain(Domain):
         return translations
 
 
-def init_i18n(app: Flask):
+def init_i18n(app: "FlaskPP | Flask"):
     from flaskpp.app.utils.translating import t, tn
     app.jinja_env.globals.update(
         _=t,

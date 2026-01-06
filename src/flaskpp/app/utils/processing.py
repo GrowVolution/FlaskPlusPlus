@@ -1,4 +1,4 @@
-from flask import request, render_template, url_for, Response
+from flask import Flask, request, render_template, url_for, Response
 from werkzeug.exceptions import NotFound
 from markupsafe import Markup
 from typing import Callable
@@ -80,3 +80,18 @@ def get_handler(name: str) -> Callable:
         if name == "handle_app_error":
             return _handle_app_error
     return handler
+
+
+def set_default_handlers(app: Flask):
+    app.context_processor(
+        lambda: get_handler("context_processor")()
+    )
+    app.before_request(
+        lambda : get_handler("before_request")()
+    )
+    app.after_request(
+        lambda response: get_handler("after_request")(response)
+    )
+    app.errorhandler(Exception)(
+        lambda error: get_handler("handle_app_error")(error)
+    )

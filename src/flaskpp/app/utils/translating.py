@@ -9,11 +9,11 @@ from flaskpp.app.extensions import socket
 from flaskpp.exceptions import I18nError
 
 
-def _t(s: str, wrap=None) -> str:
+def _t(s: str, wrap: bool = None) -> str:
     return s
 
 
-def _tn(s: str, p: str, n: int, wrap=None) -> str:
+def _tn(s: str, p: str, n: int, wrap: bool = None) -> str:
     return p if (n != 1) else s
 
 

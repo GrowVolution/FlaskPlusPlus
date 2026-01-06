@@ -2,8 +2,10 @@ from git import Repo, exc
 from pathlib import Path
 import typer, shutil, json
 
-from flaskpp.utils import prompt_yes_no, sanitize_text
-from flaskpp.modules import module_home, creator_templates, version_check
+from flaskpp.flaskpp import version
+from flaskpp.module import version_check
+from flaskpp.modules import module_home, creator_templates
+from flaskpp.utils import prompt_yes_no, sanitize_text, safe_string
 
 modules = typer.Typer(help="Manage the modules of Flask++ apps.")
 
@@ -45,30 +47,44 @@ def install(
 def create(
         module: str
 ):
-    module_dst = module_home / module
+    tmp_id = safe_string(module).lower()
+    mod_id = sanitize_text(input(f"Enter your module id ({tmp_id}): "))
+    if not mod_id.strip():
+        mod_id = tmp_id
+    else:
+        mod_id = safe_string(mod_id)
+
+    module_dst = module_home / mod_id
     if module_dst.exists():
         typer.echo(typer.style(
-            f"There is already a folder names '{module}' in modules.",
+            f"There is already a folder named '{mod_id}' in modules.",
             fg=typer.colors.YELLOW, bold=True
         ))
         if not prompt_yes_no("Do you want to overwrite it? (y/N)"):
             return
-        module_dst.unlink()
+        shutil.rmtree(module_dst)
     module_dst.mkdir(exist_ok=True)
 
     manifest = {
+        "id": mod_id,
         "name": sanitize_text(input(f"Enter the name of your module ({module}): ")),
         "description": sanitize_text(input("Describe your module briefly: ")),
         "version": sanitize_text(input("Enter the version of your module [required]: ")),
-        "author": sanitize_text(input("Enter your name or nickname: "))
+        "author": sanitize_text(input("Enter your name or nickname: ")),
+        "requires": {
+            "fpp": f">={version()}",
+            "modules": {}
+        }
     }
     if not manifest["name"].strip():
         manifest["name"] = module
+
     check = version_check(manifest["version"])
     while not check[0]:
         typer.echo(typer.style(check[1], fg=typer.colors.RED, bold=True))
         manifest["version"] = sanitize_text(input("Enter a correct version string: "))
         check = version_check(manifest["version"])
+
     for info in ["description", "author"]:
         if not manifest[info].strip():
             typer.echo(typer.style(f"Missing {info}... Ignoring manifest entry.", fg=typer.colors.YELLOW, bold=True))

@@ -1,20 +1,26 @@
 from flask_babelplus import Babel, constants, utils
+from typing import TYPE_CHECKING
 
 from flaskpp.app.config.default import DefaultConfig
 from flaskpp.exceptions import I18nError
+
+if TYPE_CHECKING:
+    from flask import Flask
+    from werkzeug.datastructures import ImmutableDict
+    from flaskpp import FlaskPP, Module
 
 
 class FppBabel(Babel):
 
     default_config = DefaultConfig()
 
-    def __init__(self, app=None, **kwargs):
+    def __init__(self, app: "FlaskPP | Flask" = None, **kwargs):
         super().__init__(app, **kwargs)
         self.date_formats = None
 
-    def init_app(self, app, default_locale=None,
-                 default_timezone=None, date_formats=None,
-                 configure_jinja=True, default_domain=None):
+    def init_app(self, app: "FlaskPP | Flask", default_locale: str = None,
+                 default_timezone: str = None, date_formats: "ImmutableDict[str, str | None]" = None,
+                 configure_jinja: bool = True, default_domain: str = None):
         if default_domain is None:
             from flaskpp.i18n import DBDomain
             default_domain = DBDomain()
@@ -60,7 +66,7 @@ class FppBabel(Babel):
 
 
 class _FppBabelState(object):
-    def __init__(self, babel, app, domain):
+    def __init__(self, babel: FppBabel, app: "FlaskPP | Flask", domain: str):
         self.babel = babel
         self.app = app
         self.domain = domain
@@ -69,7 +75,7 @@ class _FppBabelState(object):
         self.fallback_domain = None
         self.fpp_fallback_domain = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<_FppBabelState({}, {}, {})>'.format(
             self.babel, self.app, self.domain
         )
@@ -84,7 +90,7 @@ def valid_state() -> _FppBabelState:
     return state
 
 
-def register_module(module, domain_name: str = None):
+def register_module(module: "Module", domain_name: str = None):
     state = valid_state()
     name = domain_name or module.name
     state.module_domains[name] = module

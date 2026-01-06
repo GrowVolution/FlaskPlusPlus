@@ -7,26 +7,26 @@ _user_mixins: list[type] = []
 _role_mixins: list[type] = []
 
 
-def _valid_mixin(cls, kind: str):
+def _valid_mixin(cls: type, kind: str):
     if not inspect.isclass(cls):
         raise TypeError(f"{kind} mixin must be a class.")
     if hasattr(cls, "__tablename__"):
         raise TypeError(f"{kind} mixins must not define tables.")
 
 
-def user_mixin(cls):
+def user_mixin(cls: type) -> type:
     _valid_mixin(cls, "User")
     _user_mixins.append(cls)
     return cls
 
 
-def role_mixin(cls):
+def role_mixin(cls: type) -> type:
     _valid_mixin(cls, "Role")
     _role_mixins.append(cls)
     return cls
 
 
-def _build_user_model():
+def _build_user_model() -> type:
     bases = tuple(_user_mixins) + (db.Model, fsqla.FsUserMixin)
 
     return type(
@@ -36,7 +36,7 @@ def _build_user_model():
     )
 
 
-def _build_role_model():
+def _build_role_model() -> type:
     bases = tuple(_role_mixins) + (db.Model, fsqla.FsRoleMixin)
 
     return type(
