@@ -6,7 +6,7 @@ _package = Path(__file__).parent
 
 def init_models():
     for file in _package.rglob("*.py"):
-        if file.stem == "__init__":
+        if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
         import_module(f"flaskpp.app.data.{file.stem}")
 

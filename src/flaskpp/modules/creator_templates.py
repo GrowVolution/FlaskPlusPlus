@@ -21,7 +21,6 @@ module = Module(
         {requirements}
     ]
 )
-
 """
 
 module_routes = """
@@ -44,7 +43,6 @@ def init_routes(mod: Module):
             flash("Vite is not enabled for this app.", "warning")
             return redirect("/")
         return mod.render_template("vite_index.html")
-
 """
 
 module_index = """
@@ -79,10 +77,9 @@ _package = Path(__file__).parent
 def init_models():
     from .. import module
     for file in _package.rglob("*.py"):
-        if file.stem == "__init__":
+        if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
         import_module(f"{module.import_name}.data.{file.stem}")
-
 """
 
 tailwind_raw = """

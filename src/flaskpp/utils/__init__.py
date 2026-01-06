@@ -1,5 +1,8 @@
-from typing import Callable
+from functools import wraps
+from typing import Callable, Any
 import os, string, random, socket, inspect
+
+from flaskpp.utils.debugger import log
 
 
 def random_code(length: int = 6) -> str:
@@ -36,15 +39,45 @@ def takes_arg(fn: Callable, arg: str) -> bool:
     return arg in sig.parameters
 
 
-def arg_count(fn: Callable) -> int:
+def required_arg_count(fn: Callable) -> int:
     sig = inspect.signature(fn)
 
-    params = [
-        p for p in sig.parameters.values()
+    return sum(
+        1
+        for p in sig.parameters.values()
         if p.kind in (
-            p.POSITIONAL_ONLY,
-            p.POSITIONAL_OR_KEYWORD,
-            p.KEYWORD_ONLY,
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
         )
-    ]
-    return len(params)
+        and p.default is inspect._empty
+    )
+
+
+def decorate(decorator: Callable, handler: Callable) -> Callable:
+    if handler is None:
+        return decorator
+    return decorator(handler)
+
+
+async def async_result(result: Any) -> Any:
+    if inspect.isawaitable(result):
+        return await result
+    return result
+
+
+def require_extensions(*extensions):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for ext in extensions:
+                if not isinstance(ext, str):
+                    log("warn", f"Invalid extension '{ext}'.")
+                    continue
+
+                if not enabled(f"EXT_{ext.upper()}"):
+                    raise RuntimeError(f"Extension '{ext}' is not enabled.")
+            return func(*args, **kwargs)
+
+        return wrapper
+    return decorator

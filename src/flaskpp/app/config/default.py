@@ -26,8 +26,8 @@ class DefaultConfig:
     # -------------------------------------------------
     # Flask-Limiter (Rate Limiting)
     # -------------------------------------------------
-    RATELIMIT = True
-    RATELIMIT_STORAGE_URL = f"{os.getenv('REDIS_URL', 'redis://localhost:6379')}/1"
+    RATELIMIT_ENABLED = True
+    RATELIMIT_STORAGE_URI = f"{os.getenv('REDIS_URL', 'redis://localhost:6379')}/1"
     RATELIMIT_DEFAULT = "500 per day; 100 per hour"
     RATELIMIT_STRATEGY = "fixed-window"
 
@@ -40,9 +40,9 @@ class DefaultConfig:
     # -------------------------------------------------
     # Flask-BabelPlus (i18n/l10n)
     # -------------------------------------------------
-    BABEL_DEFAULT_LOCALE = "de"
+    BABEL_DEFAULT_LOCALE = "en"
     SUPPORTED_LOCALES = os.getenv("SUPPORTED_LOCALES", BABEL_DEFAULT_LOCALE)
-    BABEL_DEFAULT_TIMEZONE = "Europe/Berlin"
+    BABEL_DEFAULT_TIMEZONE = "UTC"
     BABEL_TRANSLATION_DIRECTORIES = "translations"
 
     # -------------------------------------------------

@@ -19,8 +19,13 @@
                 src="{{ url_for('fpp_default.static', filename='js/socket.js') }}" type="module"
                 data-socket-domain="{{ request.scheme.replace('http', 'ws') }}://{{ request.host }}">
         </script>
+        <meta name="sio:namespace" content="{{ namespace if namespace else '' }}">
 
         <script src="{{ url_for('fpp_default.static', filename='js/base.js') }}" type="module"></script>
+    {% endif %}
+
+    {% if enabled("EXT_BABEL") and DOMAIN %}
+        <meta name="i18n:domain" content="{{ DOMAIN }}">
     {% endif %}
 
     {% block head %}{% endblock %}
@@ -30,7 +35,7 @@
     <header>
         <nav>
             <div class="nav-inner-div">
-                <a class="nav-brand" href="/">{{ _('My Flask++ App') }}</a>
+                <a class="nav-brand" href="/">{{ _('NAV_BRAND') }}</a>
 
                 <button class="nav-collapse-btn" type="button" data-collapse-toggle="navbarCollapse"
                         aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +48,28 @@
                     {% for label, href in NAV.items() %}
                         {% include "nav_link.html" with context %}
                     {% endfor %}
+
+                    <div class="relative ml-auto pl-3">
+                        <details class="group">
+                            <summary class="nav-lang-summary">
+                                {% with data = get_locale_data(LANG) %}
+                                    <span class="ml-1">{{ data[0] }}</span>
+                                {% endwith %}
+                                <svg viewBox="0 0 20 20"
+                                     fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7 5l6 5-6 5V5z" clip-rule="evenodd"></path>
+                                </svg>
+                            </summary>
+
+                            <div class="nav-lang-dropdown">
+                                {% for locale in config["SUPPORTED_LOCALES"].split(";") %}
+                                    {% with data = get_locale_data(locale) %}
+                                        <a href="/lang/{{ locale }}?path={{ request.path }}" class="nav-lang-link">{{ data[0] }} {{ data[1] }}</a>
+                                    {% endwith %}
+                                {% endfor %}
+                            </div>
+                        </details>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -56,7 +83,7 @@
 
     <footer>
         <div class="footer-inner-div">
-            &copy; {{ current_year|default(2025) }} – Flask++
+            Flask++ {{ current_year|default(2025) }} – MIT License
         </div>
     </footer>
 
@@ -64,6 +91,8 @@
         {% include "modals/confirm_modal.html" %}
         {% include "modals/info_modal.html" %}
     {% endif %}
+
+    {% block modals %}{% endblock %}
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {

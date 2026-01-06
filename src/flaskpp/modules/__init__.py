@@ -114,12 +114,12 @@ def register_modules(app):
         try:
             home = os.getenv("HOME_MODULE", "").lower() == mod_name.lower()
             module.enable(app, home)
-            loader_context[module.safe_name] = FileSystemLoader(f"modules/{mod_name}/templates")
+            loader_context[module.name] = FileSystemLoader(f"modules/{mod_name}/templates")
             if home:
-                primary_loader = loader_context[module.safe_name]
-            log("info", f"Registered module '{module.name}' as {'home' if home else 'path'}.")
+                primary_loader = loader_context[module.name]
+            log("info", f"Registered module '{module.module_name}' as {'home' if home else 'path'}.")
         except Exception as e:
-            exception(e, f"Failed registering module '{module.name}'.")
+            exception(e, f"Failed registering module '{module.module_name}'.")
 
     loaders = []
     if primary_loader:

@@ -1,4 +1,4 @@
-import { socket, emit } from "/fpp-static/js/socket.js";
+import { socket, emit, emitAsync, namespace } from "/fpp-static/js/socket.js";
 
 
 function getFocusable(elem) {
@@ -9,7 +9,7 @@ function getFocusable(elem) {
     );
 }
 
-function showModal(elem) {
+export function showModal(elem) {
     elem._trigger = document.activeElement;
 
     elem.classList.remove("hidden");
@@ -20,7 +20,7 @@ function showModal(elem) {
     focusable?.focus();
 }
 
-function hideModal(elem) {
+export function hideModal(elem) {
     elem.classList.add("hidden");
     elem.classList.remove("flex");
     elem.setAttribute("inert", "");
@@ -76,7 +76,7 @@ export async function confirmDialog(title, message, html, category) {
     if (message) {
         confirmBody.classList.add('hidden');
         confirmText.classList.remove('hidden');
-        confirmText.textContent = message.replace(/\n/g, "<br>");
+        confirmText.innerHTML = message.replace(/\n/g, "<br>");
     } else {
         confirmText.classList.add('hidden');
         confirmBody.classList.remove('hidden');
@@ -112,7 +112,7 @@ export function showInfo(title, message, html) {
     if (message) {
         infoBody.classList.add('hidden');
         infoText.classList.remove('hidden');
-        infoText.textContent = message.replace(/\n/g, "<br>");
+        infoText.innerHTML = message.replace(/\n/g, "<br>");
     } else {
         infoText.classList.add('hidden');
         infoBody.classList.remove('hidden');
@@ -154,7 +154,10 @@ export function safe_(fn, rethrow=false) {
 }
 
 
+const domain = document.querySelector('meta[name="i18n:domain"]')?.content;
+
 export async function _(key) {
+    if (domain) key = `${key}@${domain}`;
     return new Promise((resolve) => {
         emit("_", key, (response) => {
             resolve(response);
@@ -163,6 +166,7 @@ export async function _(key) {
 }
 
 export async function _n(singular, plural, count) {
+    if (domain) singular = `${singular}@${domain}`;
     return new Promise((resolve) => {
         emit("_n", {
             s: singular,
@@ -175,7 +179,9 @@ export async function _n(singular, plural, count) {
 }
 
 
-export function socketHtmlInject(key, dom_block) {
+export async function socketHtmlInject(key, dom_block) {
+    if (namespace) key = `${key}@${namespace}`;
+
     function handleHtml(html) {
         dom_block.innerHTML = html;
 
@@ -190,7 +196,8 @@ export function socketHtmlInject(key, dom_block) {
             oldScript.remove();
         });
     }
-    emit("html", key, safe_(html => handleHtml(html)));
+    const html = await emitAsync("html", key);
+    safe_(handleHtml)(html);
 }
 
 
@@ -209,15 +216,24 @@ socket.on('error', async (message) => {
 
 
 window.FPP = {
+    showModal: showModal,
+    hideModal: hideModal,
+
     confirmDialog: confirmDialog,
     showInfo: showInfo,
+
     flash: flash,
+
     safe_: safe_,
+
     _: _,
     _n: _n,
+
     socketHtmlInject: socketHtmlInject,
+
     socket: socket,
-    emit: emit
+    emit: emit,
+    emitAsync: emitAsync,
 }
 
 

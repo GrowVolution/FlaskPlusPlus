@@ -1,22 +1,23 @@
-from flask import request, render_template, url_for
+from flask import request, render_template, url_for, Response
 from werkzeug.exceptions import NotFound
 from markupsafe import Markup
+from typing import Callable
 
+from flaskpp.app.data.noinit_translations import get_locale_data
 from flaskpp.app.utils.translating import get_locale
 from flaskpp.app.utils.auto_nav import nav_links
-from flaskpp.app.socket import default_handlers, no_handler
 from flaskpp.utils import random_code, enabled
 from flaskpp.utils.debugger import log, exception
 
-handlers = {}
+_handlers = {}
 
 
-def context_processor(fn):
-    handlers["context_processor"] = fn
+def context_processor(fn: Callable) -> Callable:
+    _handlers["context_processor"] = fn
     return fn
 
 @context_processor
-def _context_processor():
+def _context_processor() -> dict:
     return dict(
         PATH=request.path,
         LANG=get_locale(),
@@ -25,11 +26,12 @@ def _context_processor():
         enabled=enabled,
         fpp_tailwind=Markup(f"<link rel='stylesheet' href='{ url_for('fpp_default.static', filename='css/tailwind.css') }'>"),
         tailwind_main=Markup(f"<link rel='stylesheet' href='{ url_for('static', filename='css/tailwind.css') }'>"),
+        get_locale_data=get_locale_data
     )
 
 
-def before_request(fn):
-    handlers["before_request"] = fn
+def before_request(fn: Callable) -> Callable:
+    _handlers["before_request"] = fn
     return fn
 
 @before_request
@@ -43,21 +45,21 @@ def _before_request():
     log("request", f"{method:4} '{path:48}' from {ip:15} via ({agent}).")
 
 
-def after_request(fn):
-    handlers["after_request"] = fn
+def after_request(fn: Callable) -> Callable:
+    _handlers["after_request"] = fn
     return fn
 
 @after_request
-def _after_request(response):
+def _after_request(response: Response) -> Response:
     return response
 
 
-def handle_app_error(fn):
-    handlers["handle_app_error"] = fn
+def handle_app_error(fn: Callable) -> Callable:
+    _handlers["handle_app_error"] = fn
     return fn
 
 @handle_app_error
-def _handle_app_error(error):
+def _handle_app_error(error: Exception):
     if isinstance(error, NotFound):
         return render_template("404.html"), 404
 
@@ -66,30 +68,15 @@ def _handle_app_error(error):
     return render_template("error.html"), 501
 
 
-def socket_event_handler(fn):
-    handlers["socket_event_handler"] = fn
-    return fn
-
-@socket_event_handler
-def _socket_event_handler(sid: str, data: dict):
-    event = data["event"]
-    payload = data.get("payload")
-    log("request", f"Socket event from {sid}: {event} - With data: {payload}")
-
-    handler = default_handlers.get(event, no_handler)
-    try:
-        return handler(payload)
-    except Exception as e:
-        return handlers["handle_socket_error"](e)
-
-
-def handle_socket_error(fn):
-    handlers["handle_socket_error"] = fn
-    return fn
-
-@handle_socket_error
-def _handle_socket_error(error):
-    eid = random_code()
-    exception(error, f"Handling socket event failed ({eid}).")
-
-    return { "error": "Error while handling socket event." }
+def get_handler(name: str) -> Callable:
+    handler = _handlers.get(name)
+    if not handler or not callable(handler):
+        if name == "context_processor":
+            return _context_processor
+        if name == "before_request":
+            return _before_request
+        if name == "after_request":
+            return _after_request
+        if name == "handle_app_error":
+            return _handle_app_error
+    return handler
