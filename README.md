@@ -28,13 +28,14 @@ cd myproject
 
 fpp init
 
-# If you want to use modules, we recommend to install them before the setup.
+# If you want to use modules, we recommend to create / install them before the setup.
 # This will make life even easier, because you won't need to add them to your app config manually.
 
-fpp modules install [-s/--src] path/to/module
+fpp modules create [name]
+fpp modules install [id] [-s/--src] path/to/module
 
 # You can also install from remote repositories (e.g. our I18n Manager):
-fpp modules install --src https://github.com/GrowVolution/FPP_i18n_module
+fpp modules install i18n_module --src https://github.com/GrowVolution/FPP_i18n_module
 
 fpp setup
 
@@ -129,4 +130,4 @@ Do whatever you want with it – open-source, commercial, or both. Follow your h
 
 ---
 
-**GrowVolution 2025 – Release the brakes! 🚀**
+**GrowVolution e.V. 2026 – Release the brakes! 🚀**

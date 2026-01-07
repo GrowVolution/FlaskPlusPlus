@@ -12,7 +12,7 @@ modules = typer.Typer(help="Manage the modules of Flask++ apps.")
 
 @modules.command()
 def install(
-        module: str,
+        module_id: str,
         src: str = typer.Option(
             None,
             "-s", "--src",
@@ -22,9 +22,9 @@ def install(
     if not src:
         raise NotImplementedError("Module hub is not ready yet.")
 
-    typer.echo(f"Installing {module}...")
+    typer.echo(f"Installing {module_id}...")
     mod_src = Path(src)
-    mod_dst = module_home / module
+    mod_dst = module_home / module_id
     if mod_src.exists():
         typer.echo(f"Loading module from local path...")
         if mod_src.parent.resolve() == module_home.resolve():
