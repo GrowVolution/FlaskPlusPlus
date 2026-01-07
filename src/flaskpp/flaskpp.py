@@ -22,10 +22,6 @@ from flaskpp.exceptions import EventHookException
 if TYPE_CHECKING:
     from types import FrameType
 
-_fpp_default = Blueprint("fpp_default", __name__,
-                         static_folder=(Path(__file__).parent / "app" / "static").resolve(),
-                         static_url_path="/fpp-static")
-
 
 class FppVersion(tuple):
     def __new__(cls, major: int, minor: int, patch: int):
@@ -196,8 +192,15 @@ class FlaskPP(Flask):
         if enabled("AUTOGENERATE_TAILWIND_CSS"):
             generate_tailwind_css(self)
 
+        from flaskpp import _fpp_root
+        _fpp_default = Blueprint(
+            "fpp_default", __name__,
+                 static_folder=_fpp_root / "app" / "static",
+                 static_url_path="/fpp-static"
+        )
+        self.register_blueprint(_fpp_default)
+
         if enabled("FPP_MODULES"):
-            self.register_blueprint(_fpp_default)
             self.url_prefix = ""
             register_modules(self)
             self.static_url_path = f"{self.url_prefix}/static"
