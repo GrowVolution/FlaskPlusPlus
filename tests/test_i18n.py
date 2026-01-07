@@ -2,7 +2,7 @@ from flask import Flask
 from babel.support import Translations
 from unittest.mock import patch, MagicMock
 
-from flaskpp.app.i18n import (
+from flaskpp.i18n import (
     DBMergedTranslations,
     DBDomain,
     init_i18n
