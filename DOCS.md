@@ -1,5 +1,8 @@
 # Flask++ Documentation
 
+> ⚠️ Note: The documentation is currently being updated to reflect Flask++ v0.3.x.<br>
+> Some advanced sections may still reference older defaults.
+
 ### App Factory
 
 The default Flask app factory hasn't changed much. The FlaskPP class does a lot of repetitive work for you.
