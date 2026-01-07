@@ -17,7 +17,7 @@ class DummyTranslations(Translations):
         return f"mo:{singular if n == 1 else plural}"
 
 
-@patch("flaskpp.app.i18n.I18nMessage")
+@patch("flaskpp.i18n.I18nMessage")
 def test_dbmerged_gettext_db_hit(mock_model):
     row = MagicMock()
     row.text = "db-value"
@@ -29,7 +29,7 @@ def test_dbmerged_gettext_db_hit(mock_model):
     assert dbt.gettext("hello") == "db-value"
 
 
-@patch("flaskpp.app.i18n.I18nMessage")
+@patch("flaskpp.i18n.I18nMessage")
 def test_dbmerged_gettext_no_db_fallback(mock_model):
     mock_model.query.filter_by.return_value.first.return_value = None
 
@@ -39,7 +39,7 @@ def test_dbmerged_gettext_no_db_fallback(mock_model):
     assert dbt.gettext("hello") == "mo:hello"
 
 
-@patch("flaskpp.app.i18n.I18nMessage")
+@patch("flaskpp.i18n.I18nMessage")
 def test_dbmerged_ngettext_db_hit(mock_model):
     row = MagicMock()
     row.text = "db-plural"
@@ -51,7 +51,7 @@ def test_dbmerged_ngettext_db_hit(mock_model):
     assert dbt.ngettext("one", "many", 2) == "db-plural"
 
 
-@patch("flaskpp.app.i18n.I18nMessage")
+@patch("flaskpp.i18n.I18nMessage")
 def test_dbmerged_ngettext_fallback(mock_model):
     mock_model.query.filter_by.return_value.first.return_value = None
 
@@ -61,8 +61,8 @@ def test_dbmerged_ngettext_fallback(mock_model):
     assert dbt.ngettext("one", "many", 2) == "mo:many"
 
 
-@patch("flaskpp.app.i18n.get_locale", return_value="en")
-@patch("flaskpp.app.i18n.Translations.load")
+@patch("flaskpp.i18n.get_locale", return_value="en")
+@patch("flaskpp.i18n.Translations.load")
 def test_dbdomain_returns_dbmerged(mock_load, mock_locale):
     mock_load.return_value = DummyTranslations()
 

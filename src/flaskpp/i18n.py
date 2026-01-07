@@ -3,6 +3,7 @@ from babel.support import Translations
 from flask import Flask, current_app
 from typing import TYPE_CHECKING
 
+from flaskpp.utils import enabled
 from flaskpp.app.extensions import socket
 from flaskpp.app.data.babel import I18nMessage
 
@@ -75,14 +76,15 @@ def init_i18n(app: "FlaskPP | Flask"):
         ngettext=tn
     )
 
-    @socket.on_default("_")
-    def socket_t(key: str) -> str:
-        return t(key)
+    if enabled("FPP_PROCESSING"):
+        @socket.on_default("_")
+        def socket_t(key: str) -> str:
+            return t(key)
 
-    @socket.on_default("_n")
-    def socket_tn(data: dict) -> str:
-        return tn(
-            data.get("s", ""),
-            data.get("p", ""),
-            data.get("n", 0)
-        )
+        @socket.on_default("_n")
+        def socket_tn(data: dict) -> str:
+            return tn(
+                data.get("s", ""),
+                data.get("p", ""),
+                data.get("n", 0)
+            )
