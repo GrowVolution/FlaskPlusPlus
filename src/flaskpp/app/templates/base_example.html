@@ -28,6 +28,11 @@
         <meta name="i18n:domain" content="{{ DOMAIN }}">
     {% endif %}
 
+    {% if enabled("FRONTEND_ENGINE") and enabled("DEBUG_MODE") %}
+        <meta name="vite:main" content="{{ vite_main_prefix }}">
+        <meta name="vite:current" content="{{ vite_prefix }}">
+    {% endif %}
+
     {% block head %}{% endblock %}
 </head>
 
@@ -48,6 +53,8 @@
                     {% for label, href in NAV.items() %}
                         {% include "nav_link.html" with context %}
                     {% endfor %}
+
+                    {% block nav %}{% endblock %}
 
                     <div class="relative ml-auto pl-3">
                         <details class="group">

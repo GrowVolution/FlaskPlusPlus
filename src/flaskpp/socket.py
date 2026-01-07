@@ -36,6 +36,7 @@ class FppSocket(AsyncServer):
         self.default_processing = default_processing or enabled("FPP_PROCESSING")
         self._default_event_name = default_event_name
         self.sid_passing = enable_sid_passing
+        self._connect_handler = None
         self._default_handler = None
         self._default_handlers = {}
         self._html_injector = None
@@ -48,7 +49,7 @@ class FppSocket(AsyncServer):
     def _event_context(self, session: dict) -> _EventContext:
         return _EventContext(self._context, session)
 
-    async def _connect(self, sid: str, environ: dict):
+    async def _on_connect(self, sid: str, environ: dict):
         if self.app is None:
             RuntimeError("Cannot establish connection: 'app' is None. Did you run init_app(app)?")
 
@@ -98,6 +99,8 @@ class FppSocket(AsyncServer):
         self._context = ContextVar(f"{app.name}_socket")
 
         if self.default_processing:
+            if self._connect_handler is None:
+                self._connect_handler = self._on_connect
             if self._default_handler is None:
                 self._default_handler = self._on_default
             if self._html_injector is None:
@@ -105,7 +108,7 @@ class FppSocket(AsyncServer):
             if self._error_handler is None:
                 self._error_handler = _handle_error
 
-            self.on("connect", self._connect)
+            self.on("connect", self._connect_handler)
             self.on(self._default_event_name, self._default_handler)
             self.on_default("html", self._html_injector)
 
@@ -193,6 +196,16 @@ class FppSocket(AsyncServer):
 
         return decorate(decorator, handler)
 
+    def connect_handler(self, handler: Callable = None) -> Callable:
+        if not self.default_processing:
+            raise RuntimeError("Cannot update default connect handler: 'default_processing' is not enabled.")
+
+        def decorator(fn):
+            self._connect_handler = fn
+            return fn
+
+        return decorate(decorator, handler)
+
     def default_handler(self, handler: Callable = None) -> Callable:
         if not self.default_processing:
             raise RuntimeError(f"Cannot register '{self._default_event_name}' handler: 'default_processing' is not enabled.")
@@ -203,7 +216,7 @@ class FppSocket(AsyncServer):
 
         return decorate(decorator, handler)
 
-    def default_html_injector(self, injector: Callable = None) -> Callable:
+    def html_handler(self, injector: Callable = None) -> Callable:
         if not self.default_processing:
             raise RuntimeError("Cannot register default html injector: 'default_processing' is not enabled.")
 

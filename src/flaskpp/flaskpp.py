@@ -214,9 +214,11 @@ class FlaskPP(Flask):
             from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context_processor(lambda: {
-                "vite_main": engine.vite
+                "vite_main": engine.vite,
+                "vite_main_prefix": engine.prefix,
             })
             self.frontend_engine = engine
+            self.on_shutdown(engine.shutdown)
 
         self._startup()
         self._server.start()

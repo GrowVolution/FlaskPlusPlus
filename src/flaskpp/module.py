@@ -88,7 +88,9 @@ class Module(Blueprint):
             from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context["vite"] = engine.vite
+            self.context["vite_prefix"] = engine.prefix
             self.frontend_engine = engine
+            app.on_shutdown(engine.shutdown)
 
         self.context_processor(lambda: dict(
             **self.context,
