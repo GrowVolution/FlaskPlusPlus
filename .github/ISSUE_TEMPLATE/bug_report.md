@@ -11,16 +11,16 @@ assignees: GrowV211
 A clear and concise description of what the bug is.
 
 **Log / Traceback**
-Provide all you think is necessary to from your log. Therefore run your app in debug mode...
+Provide all you think is necessary to from your log. Therefore you may want to run your app in debug mode...
 
-Automated: python run.py [...] -d
-Interactive: restart your app and enter "y" when debug is prompted
+*Automated:* fpp run [args] -d
+*Interactive:* restart your app and enter "y" when debug is prompted
 
 ... then reproduce the error, go to "logs/[your_app]" and copy the relevant section of your log.
 
 **Server / Host:**
- - OS: [e.g. Debian]
- - Version [e.g. 12]
+OS: [e.g. Debian]
+Version: [e.g. 12]
 
 **Additional context**
 If you think it might be helpful then add your code snippets, config parts, screenshots etc here.
