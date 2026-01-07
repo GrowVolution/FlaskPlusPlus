@@ -72,7 +72,7 @@ def create(
         "version": sanitize_text(input("Enter the version of your module [required]: ")),
         "author": sanitize_text(input("Enter your name or nickname: ")),
         "requires": {
-            "fpp": f">={version()}",
+            "fpp": f">={str(version()).strip("v")}",
             "modules": {}
         }
     }
