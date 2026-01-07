@@ -7,8 +7,8 @@ assignees: GrowV211
 
 ---
 
-**What are you annoyed about?**
+**What are you annoyed about?**<br>
 The reason we built this solution is to make our devs life easier. So if you experience some kind of boilerplate or missing features that might be relevant for you, tell us everything about it in detail.
-
-**How can we ease your life even more?**
+<br><br>
+**How can we ease your life even more?**<br>
 Describe the solution you are dreaming of in detail.
