@@ -236,14 +236,16 @@ class FppSocket(AsyncServer):
         return get(store, name, namespace)
 
     @property
-    def event_context(self) -> _EventContext:
+    def event_context(self) -> _EventContext | None:
+        if self._context is None:
+            return None
         return self._context.get()
 
     @property
     def current_session(self) -> dict | None:
         try:
             ctx = self.event_context
-            return ctx.session
+            return ctx.session if ctx else None
         except LookupError:
             return None
 

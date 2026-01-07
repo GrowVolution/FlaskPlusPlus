@@ -61,9 +61,8 @@ def test_dbmerged_ngettext_fallback(mock_model):
     assert dbt.ngettext("one", "many", 2) == "mo:many"
 
 
-@patch("flaskpp.i18n.get_locale", return_value="en")
 @patch("flaskpp.i18n.Translations.load")
-def test_dbdomain_returns_dbmerged(mock_load, mock_locale):
+def test_dbdomain_returns_dbmerged(mock_load):
     mock_load.return_value = DummyTranslations()
 
     domain = DBDomain(domain="messages")
