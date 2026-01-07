@@ -7,20 +7,20 @@ assignees: GrowV211
 
 ---
 
-**Describe the bug**<br>
+**Describe the bug**
 A clear and concise description of what the bug is.
-<br><br>
-**Log / Traceback**<br>
+
+**Log / Traceback**
 Provide all you think is necessary to from your log. Therefore you may want to run your app in debug mode...
-<br><br>
-*Automated:* fpp run [args] -d<br>
+
+*Automated:* fpp run [args] -d
 *Interactive:* restart your app and enter "y" when debug is prompted
-<br><br>
+
 ... then reproduce the error, go to "logs/[your_app]" and copy the relevant section of your log.
-<br><br>
-**Server / Host:**<br>
-OS: [e.g. Debian]<br>
+
+**Server / Host:**
+OS: [e.g. Debian]
 Version: [e.g. 12]
-<br><br>
-**Additional context**<br>
+
+**Additional context**
 If you think it might be helpful then add your code snippets, config parts, screenshots etc here.
