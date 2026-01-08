@@ -150,6 +150,14 @@ def create_apps():
         default_port = start_app(file, default_port)
 
 
+def clear_logs(app_name: str):
+    log_dir = logs_path / app_name
+    log_files = [f for f in log_dir.iterdir() if f.is_file()]
+    to_delete = log_files[:-1] if apps[app_name]["proc"] is not None else log_files
+    for f in to_delete:
+        f.unlink(True)
+
+
 def menu():
     typer.echo(
         "\nChoose an action:\n"
@@ -157,8 +165,9 @@ def menu():
         "\t2. Restart app\n"
         "\t3. Stop app\n"
         "\t4. Start app (if stopped)\n"
-        "\t5. Clear console\n"
-        "\t6. Exit"
+        "\t5. Clear logs\n"
+        "\t6. Clear console\n"
+        "\t7. Exit"
     )
 
 
@@ -184,13 +193,13 @@ def interactive_main():
         choices = current_apps()
         menu()
         cmd = input("> ").strip()
-        if cmd == "5":
+        if cmd == "6":
             os.system("cls" if os.name == "nt" else "clear")
             continue
-        if cmd == "6":
+        if cmd == "7":
             shutdown()
             sys.exit(0)
-        if cmd not in {"1", "2", "3", "4"}:
+        if cmd not in {"1", "2", "3", "4", "5"}:
             typer.echo(typer.style("Invalid option.", fg=typer.colors.RED, bold=True))
             continue
         if not choices:
@@ -226,6 +235,8 @@ def interactive_main():
                 default = entry["port"] or 5000
                 entry["port"] = None
                 _ = start_app(entry["conf"], default)
+        elif cmd == "5":
+            clear_logs(chosen_app)
 
 
 def run(

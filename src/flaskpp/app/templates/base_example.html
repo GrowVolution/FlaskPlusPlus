@@ -28,11 +28,6 @@
         <meta name="i18n:domain" content="{{ DOMAIN }}">
     {% endif %}
 
-    {% if enabled("FRONTEND_ENGINE") and enabled("DEBUG_MODE") %}
-        <meta name="vite:main" content="{{ vite_main_prefix }}">
-        <meta name="vite:current" content="{{ vite_prefix }}">
-    {% endif %}
-
     {% block head %}{% endblock %}
 </head>
 
