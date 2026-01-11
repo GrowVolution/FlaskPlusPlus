@@ -13,8 +13,7 @@ from flaskpp.tailwind import generate_tailwind_css
 from flaskpp.modules import register_modules
 from flaskpp.utils import enabled, required_arg_count, safe_string
 from flaskpp.utils.debugger import start_session, log
-from flaskpp.app.config import CONFIG_MAP
-from flaskpp.app.config.default import DefaultConfig
+from flaskpp.app.config import init_configs, build_config
 from flaskpp.app.data import db_autoupdate
 from flaskpp.app.utils.processing import set_default_handlers
 from flaskpp.exceptions import EventHookException
@@ -32,14 +31,17 @@ class FppVersion(tuple):
 
 
 class FlaskPP(Flask):
-    def __init__(self, import_name: str, config_name: str):
+    def __init__(self, import_name: str):
         super().__init__(
             import_name,
             static_folder=None,
             static_url_path=None
         )
         self.name = safe_string(os.getenv("APP_NAME", self.import_name)).lower()
-        self.config.from_object(CONFIG_MAP.get(config_name, DefaultConfig))
+
+        init_configs(self)
+        config = build_config()
+        self.config.from_object(config)
 
         self._startup_hooks = []
         self._shutdown_hooks = []
@@ -102,6 +104,13 @@ class FlaskPP(Flask):
         if enabled("EXT_AUTHLIB"):
             from flaskpp.app.extensions import oauth
             oauth.init_app(self)
+
+            clients = self.config.get("OAUTH_CLIENTS")
+            for client, cfg in clients.items():
+                oauth.register(
+                    name=client,
+                    **cfg
+                )
 
         if enabled("EXT_MAILING"):
             from flaskpp.app.extensions import mailer

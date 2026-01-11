@@ -130,4 +130,4 @@ Do whatever you want with it – open-source, commercial, or both. Follow your h
 
 ---
 
-**GrowVolution e.V. 2025 – Release the brakes! 🚀**
+**&copy; GrowVolution e.V. 2025 – Release the brakes! 🚀**

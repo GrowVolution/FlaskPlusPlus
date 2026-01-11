@@ -1,9 +1,6 @@
 import os
 
-from flaskpp.app.config import register_config
 
-
-@register_config('default')
 class DefaultConfig:
     # -------------------------------------------------
     # Core / Flask

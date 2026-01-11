@@ -1,5 +1,4 @@
 from flask import Blueprint, Response, send_from_directory
-from werkzeug.datastructures import Headers
 from markupsafe import Markup
 from dataclasses import dataclass
 from typing import Optional, List, Dict
@@ -352,7 +351,15 @@ document.querySelector("head").appendChild(link);
 
         response = Response("\n".join(content).encode(), upstream.status_code)
 
-        response.headers = Headers(upstream.headers)
+        for key, value in upstream.headers.items():
+            if key.lower() not in {
+                "content-length",
+                "content-encoding",
+                "transfer-encoding",
+                "connection",
+            }:
+                response.headers[key] = value
+
         return response
 
     def shutdown(self):
