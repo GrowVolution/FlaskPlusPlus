@@ -61,7 +61,7 @@ def required_arg_count(fn: Callable) -> int:
     )
 
 
-def decorate(decorator: Callable, handler: Callable) -> Callable:
+def decorate(decorator: Callable, handler: Callable | type) -> Callable | type:
     if handler is None:
         return decorator
     return decorator(handler)

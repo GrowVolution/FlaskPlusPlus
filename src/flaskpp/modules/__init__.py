@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import os, typer, json
 
 from flaskpp.module import basic_checked_data, valid_version
+from flaskpp.utils import enabled
 from flaskpp.utils.debugger import log, exception
 from flaskpp.exceptions import ManifestError
 
@@ -33,12 +34,12 @@ def generate_modlib(app_name: str):
                typer.style("Okay, now you can activate your installed modules.\n", fg=typer.colors.YELLOW, bold=True) +
                typer.style("Default is '0' (deactivated)!", fg=typer.colors.MAGENTA))
 
-    for obj in module_home.iterdir():
-        if obj.is_dir() and (obj / "__init__.py").exists():
-            val = input(f"{obj.name}: ").strip()
-            if not val:
-                val = "0"
-            config["modules"][obj.name] = val
+    for module in installed_modules(module_home, False):
+        mod_id = module[0]
+        val = input(f"<{mod_id} {module[1]}>: ").strip()
+        if not val:
+            val = "0"
+        config["modules"][mod_id] = val
 
     set_home = input(
         "\n" +
@@ -81,47 +82,35 @@ def register_modules(app: "FlaskPP | Flask"):
     if not app_name:
         raise RuntimeError("Missing app name variable: APP_NAME")
 
-    conf = conf_path / f"{app_name}.conf"
-    if not conf.exists():
-        raise RuntimeError(f"Missing modlib for '{app_name}'.")
-
-    config = ConfigParser()
-    config.optionxform = str
-    config.read(conf)
-
-    if "modules" not in config:
-        log("warn", f"Missing [modules] section in '{app_name}.conf'.")
-        return
-
     loader_context = {}
     primary_loader = None
-    for mod_name, setting in config["modules"].items():
-        enabled = setting.strip().lower() in ["true", "1", "yes"]
-        if not enabled:
+    for module in installed_modules(Path(app.root_path) / "modules", False):
+        mod_id = module[0]
+        if not enabled(mod_id):
             continue
 
         try:
-            mod = import_module(f"modules.{mod_name}")
+            mod = import_module(f"modules.{mod_id}")
         except ModuleNotFoundError as e:
-            exception(e, f"Could not import module '{mod_name}' for app '{app_name}'.")
+            exception(e, f"Could not import module '{mod_id}' for app '{app_name}'.")
             continue
 
         from flaskpp import Module
         module = getattr(mod, "module", None)
         if not isinstance(module, Module):
-            log("error", f"Missing 'module: Module' in module '{mod_name}'.")
+            log("error", f"Missing 'module: Module' in module '{mod_id}'.")
             continue
 
         try:
             log("info", f"Registering: {module}")
         except ManifestError as e:
-            exception(e, f"Failed to log {mod_name}.module")
+            exception(e, f"Failed to log {mod_id}.module")
             continue
 
         try:
-            is_home = os.getenv("HOME_MODULE", "").lower() == mod_name.lower()
+            is_home = os.getenv("HOME_MODULE", "").lower() == mod_id
             module.enable(app, is_home)
-            loader_context[module.name] = FileSystemLoader(f"modules/{mod_name}/templates")
+            loader_context[module.name] = FileSystemLoader(f"modules/{mod_id}/templates")
             if is_home:
                 primary_loader = loader_context[module.name]
             log("info", f"Registered module '{module.module_name}' as {'home' if is_home else 'path'}.")
@@ -140,7 +129,7 @@ def register_modules(app: "FlaskPP | Flask"):
     app.jinja_loader = ChoiceLoader(loaders)
 
 
-def installed_modules(package: Path) -> list[tuple[str, str]]:
+def installed_modules(package: Path, do_log: bool = True) -> list[tuple[str, str]]:
     if _modules.get(package):
         return _modules[package]
 
@@ -161,7 +150,7 @@ def installed_modules(package: Path) -> list[tuple[str, str]]:
                 (module_data.get("id", module.name), version)
             )
         except (ModuleNotFoundError, FileNotFoundError, AttributeError, ManifestError, json.JSONDecodeError) as e:
-            log("warn", f"Invalid module package '{module.name}' in {package}: {e}.")
+            if do_log: log("warn", f"Invalid module package '{module.name}' in {package}: {e}.")
             continue
 
     return _modules[package]

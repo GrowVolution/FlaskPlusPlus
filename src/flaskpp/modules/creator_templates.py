@@ -45,6 +45,16 @@ def init_routes(mod: Module):
         return mod.render_template("vite_index.html")
 """
 
+module_config = """
+from flaskpp.app.config import register_config
+
+
+@register_config()
+class {name}Config:
+    # TODO: Write your modules required config data here
+    pass
+"""
+
 module_index = """
 {% extends "base_example.html" %}
 {# The base template is natively provided by Flask++. #}

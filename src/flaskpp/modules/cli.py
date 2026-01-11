@@ -108,6 +108,14 @@ def create(
     templates = module_dst / "templates"
     templates.mkdir(exist_ok=True)
 
+
+    config_name = ""
+    for s in mod_id.split("_"):
+        config_name += s.capitalize()
+
+    (module_dst / "config.py").write_text(creator_templates.module_config.format(
+        name=config_name
+    ))
     (module_dst / "routes.py").write_text(creator_templates.module_routes)
     (templates / f"index.html").write_text(creator_templates.module_index)
     (templates / f"vite_index.html").write_text(creator_templates.module_vite_index)

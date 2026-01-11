@@ -35,8 +35,8 @@ def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_
             f.write("""
 from flaskpp import FlaskPP
             
-def create_app(config_name: str = "default"):
-    app = FlaskPP(__name__, config_name)
+def create_app():
+    app = FlaskPP(__name__)
 
     # TODO: Extend the Flask++ default setup with your own factory
 

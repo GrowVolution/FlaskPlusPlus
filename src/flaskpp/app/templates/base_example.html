@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="icon" href="{{ url_for('fpp_default.static', filename='img/favicon.png') }}" type="image/png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css" />
 
     {{ fpp_tailwind }}
 
@@ -55,7 +56,7 @@
                         <details class="group">
                             <summary class="nav-lang-summary">
                                 {% with data = get_locale_data(LANG) %}
-                                    <span class="ml-1">{{ data[0] }}</span>
+                                    <span class="fi fi-{{ data[0] }}"></span>
                                 {% endwith %}
                                 <svg viewBox="0 0 20 20"
                                      fill="currentColor">
@@ -66,7 +67,9 @@
                             <div class="nav-lang-dropdown">
                                 {% for locale in config["SUPPORTED_LOCALES"].split(";") %}
                                     {% with data = get_locale_data(locale) %}
-                                        <a href="/lang/{{ locale }}?path={{ request.path }}" class="nav-lang-link">{{ data[0] }} {{ data[1] }}</a>
+                                        <a href="/lang/{{ locale }}?path={{ request.path }}" class="nav-lang-link">
+                                            <span class="fi fi-{{ data[0] }} fis mr-2 rounded-4xl"></span> {{ data[1] }}
+                                        </a>
                                     {% endwith %}
                                 {% endfor %}
                             </div>
@@ -85,7 +88,9 @@
 
     <footer>
         <div class="footer-inner-div">
-            Flask++ {{ current_year|default(2025) }} – MIT License
+            {% block footer %}
+                Flask++ {{ current_year|default(2025) }} – MIT License
+            {% endblock %}
         </div>
     </footer>
 
