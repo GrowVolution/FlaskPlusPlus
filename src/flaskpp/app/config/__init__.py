@@ -13,6 +13,10 @@ _config_map: dict[int, list[type]] = {}
 
 def init_configs(app: "FlaskPP"):
     modules = Path(app.root_path) / "modules"
+
+    if not modules.exists() or not modules.is_dir():
+        return
+
     for module in modules.iterdir():
         if not module.is_dir():
             continue
