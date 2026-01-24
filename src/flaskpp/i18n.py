@@ -76,7 +76,7 @@ def init_i18n(app: "FlaskPP | Flask"):
         ngettext=tn
     )
 
-    if enabled("FPP_PROCESSING"):
+    if enabled("FPP_PROCESSING") or socket.default_processing:
         @socket.on_default("_")
         def socket_t(key: str) -> str:
             return t(key)

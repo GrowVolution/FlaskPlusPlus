@@ -2,6 +2,7 @@ from flask_security.models import fsqla_v3 as fsqla
 from typing import Callable
 import inspect
 
+from flaskpp.utils import check_priority, build_sorted_tuple
 from flaskpp.app.extensions import db
 
 _user_mixins: dict[int, list[type]] = {}
@@ -16,8 +17,7 @@ def _valid_mixin(cls: type, kind: str):
 
 
 def user_mixin(priority: int = 1) -> Callable:
-    if priority not in range(11):
-        raise ValueError("Priority must be between 1 and 10.")
+    check_priority(priority)
 
     def decorator(cls):
         _valid_mixin(cls, "User")
@@ -29,8 +29,7 @@ def user_mixin(priority: int = 1) -> Callable:
 
 
 def role_mixin(priority: int = 1) -> Callable:
-    if priority not in range(11):
-        raise ValueError("Priority must be between 1 and 10.")
+    check_priority(priority)
 
     def decorator(cls):
         _valid_mixin(cls, "Role")
@@ -42,23 +41,17 @@ def role_mixin(priority: int = 1) -> Callable:
 
 
 def _build_user_model() -> type:
-    mixins = dict(sorted(_user_mixins.items(), reverse=True)).values()
-    bases = tuple(mixins) + (db.Model, fsqla.FsUserMixin)
-
     return type(
         "User",
-        bases,
+        build_sorted_tuple(_user_mixins, (db.Model, fsqla.FsUserMixin)),
         {}
     )
 
 
 def _build_role_model() -> type:
-    mixins = dict(sorted(_role_mixins.items(), reverse=True)).values()
-    bases = tuple(mixins) + (db.Model, fsqla.FsRoleMixin)
-
     return type(
         "Role",
-        bases,
+        build_sorted_tuple(_role_mixins, (db.Model, fsqla.FsRoleMixin)),
         {}
     )
 

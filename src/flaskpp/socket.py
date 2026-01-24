@@ -196,7 +196,7 @@ class FppSocket(AsyncServer):
 
         return decorate(decorator, handler)
 
-    def connect_handler(self, handler: Callable = None) -> Callable:
+    def on_connect(self, handler: Callable = None) -> Callable:
         if not self.default_processing:
             raise RuntimeError("Cannot update default connect handler: 'default_processing' is not enabled.")
 

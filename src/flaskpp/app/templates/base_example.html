@@ -46,8 +46,16 @@
                 </button>
 
                 <div id="navbarCollapse" class="nav-collapse max-md:hidden">
-                    {% for label, href in NAV.items() %}
-                        {% include "nav_link.html" with context %}
+                    {% for nav_type, nav_data in NAV.items() %}
+                        {% if nav_type == "links" %}
+                            {% for link in nav_data %}
+                                {% include "nav_link.html" with context %}
+                            {% endfor %}
+                        {% elif nav_type == "dropdowns" %}
+                            {% for dropdown in nav_data %}
+                                {% include "dropdown.html" with context %}
+                            {% endfor %}
+                        {% endif %}
                     {% endfor %}
 
                     {% block nav %}{% endblock %}

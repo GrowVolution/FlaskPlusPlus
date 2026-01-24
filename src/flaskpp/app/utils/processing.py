@@ -5,7 +5,7 @@ from typing import Callable
 
 from flaskpp.app.data.noinit_translations import get_locale_data
 from flaskpp.app.utils.translating import get_locale
-from flaskpp.app.utils.auto_nav import nav_links
+from flaskpp.app.utils.auto_nav import build_nav
 from flaskpp.utils import random_code, enabled
 from flaskpp.utils.debugger import log, exception
 
@@ -16,12 +16,10 @@ def context_processor(fn: Callable) -> Callable:
     _handlers["context_processor"] = fn
     return fn
 
-@context_processor
 def _context_processor() -> dict:
     return dict(
-        PATH=request.path,
         LANG=get_locale(),
-        NAV=nav_links,
+        NAV=build_nav(),
 
         enabled=enabled,
         fpp_tailwind=Markup(f"<link rel='stylesheet' href='{ url_for('fpp_default.static', filename='css/tailwind.css') }'>"),
@@ -34,7 +32,6 @@ def before_request(fn: Callable) -> Callable:
     _handlers["before_request"] = fn
     return fn
 
-@before_request
 def _before_request():
     method = request.method.upper()
     path = request.path
@@ -49,7 +46,6 @@ def after_request(fn: Callable) -> Callable:
     _handlers["after_request"] = fn
     return fn
 
-@after_request
 def _after_request(response: Response) -> Response:
     return response
 
@@ -58,7 +54,6 @@ def handle_app_error(fn: Callable) -> Callable:
     _handlers["handle_app_error"] = fn
     return fn
 
-@handle_app_error
 def _handle_app_error(error: Exception):
     if isinstance(error, NotFound):
         return render_template("404.html"), 404

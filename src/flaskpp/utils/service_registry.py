@@ -1,5 +1,5 @@
 from pathlib import Path
-import typer, os, sys, ctypes, subprocess, shlex
+import typer, os, sys, ctypes, subprocess, shlex, plistlib
 
 home = Path.cwd().resolve()
 service_path = home / "services"
@@ -16,8 +16,12 @@ def _ensure_admin() -> bool:
     return os.geteuid() == 0
 
 
-def service_file(app: str):
-    return service_path / (f"{app}.py" if os.name == "nt" else f"{app}.service")
+def service_file(app: str) -> Path:
+    if os.name == "nt":
+        return service_path / f"{app}.py"
+    if sys.platform == "darwin":
+        return service_path / f"{app}.plist"
+    return service_path / f"{app}.service"
 
 
 def create_service(app_name: str, port: int, debug: bool):
@@ -44,17 +48,12 @@ class AppService(win32serviceutil.ServiceFramework):
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         win32event.SetEvent(self.stop_event)
         self.alive = False
-        servicemanager.LogInfoMsg("{app_name} Service stopped.")
 
     def SvcDoRun(self):
-        servicemanager.LogInfoMsg("{app_name} Service started.")
         self.main_loop()
 
     def main_loop(self):
-        proc = subprocess.Popen(
-            [{entry_list}],
-            cwd=r"{str(home)}"
-        )
+        proc = subprocess.Popen([{entry_list}], cwd=r"{str(home)}")
         while self.alive:
             if proc.poll() is not None:
                 raise RuntimeError("Service execution failed.")
@@ -66,6 +65,20 @@ if __name__ == "__main__":
 """
         out = service_file(app_name)
         out.write_text(template)
+
+    elif sys.platform == "darwin":
+        plist = {
+            "Label": f"flaskpp.{app_name}",
+            "ProgramArguments": args,
+            "WorkingDirectory": str(home),
+            "RunAtLoad": True,
+            "KeepAlive": True,
+            "StandardOutPath": str(home / f"{app_name}.out.log"),
+            "StandardErrorPath": str(home / f"{app_name}.err.log"),
+        }
+        out = service_file(app_name)
+        with out.open("wb") as f:
+            plistlib.dump(plist, f)
 
     else:
         exec_start = " ".join(shlex.quote(a) for a in args)
@@ -88,7 +101,7 @@ WantedBy=multi-user.target
         out = service_file(app_name)
         out.write_text(template)
         target = Path(f"/etc/systemd/system/{app_name}.service")
-        if target.is_symlink() or target.exists():
+        if target.exists() or target.is_symlink():
             target.unlink()
         target.symlink_to(out)
 
@@ -98,17 +111,9 @@ def register(app: str = typer.Option(..., "--app", "-a"),
              port: int = typer.Option(5000, "--port", "-p"),
              debug: bool = typer.Option(False, "--debug", "-d")):
     if not _ensure_admin():
-        typer.echo(typer.style(
-            "You need admin privileges to register a service.",
-            fg=typer.colors.RED, bold=True
-        ))
         raise typer.Exit(1)
 
     if not (app and (home / "app_configs" / f"{app}.conf").exists()):
-        typer.echo(typer.style(
-            "You must specify a valid app to register it.",
-            fg=typer.colors.RED, bold=True
-        ))
         raise typer.Exit(1)
 
     create_service(app, port, debug)
@@ -117,12 +122,18 @@ def register(app: str = typer.Option(..., "--app", "-a"),
         f = service_file(app)
         subprocess.run([sys.executable, str(f), "install"], check=False)
         subprocess.run([sys.executable, str(f), "start"], check=False)
+    elif sys.platform == "darwin":
+        f = service_file(app)
+        target = Path.home() / "Library" / "LaunchAgents" / f.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            target.unlink()
+        target.symlink_to(f)
+        subprocess.run(["launchctl", "load", str(target)], check=False)
     else:
         subprocess.run(["systemctl", "daemon-reload"], check=False)
         subprocess.run(["systemctl", "enable", app], check=False)
         subprocess.run(["systemctl", "start", app], check=False)
-
-    typer.echo(typer.style(f"Service {app} registered.", fg=typer.colors.GREEN, bold=True))
 
 
 @registry.command()
@@ -130,10 +141,10 @@ def start(app: str):
     if os.name == "nt":
         f = service_file(app)
         subprocess.run([sys.executable, str(f), "start"], check=False)
+    elif sys.platform == "darwin":
+        subprocess.run(["launchctl", "start", f"flaskpp.{app}"], check=False)
     else:
         subprocess.run(["systemctl", "start", app], check=False)
-
-    typer.echo(typer.style(f"Service {app} started.", fg=typer.colors.GREEN, bold=True))
 
 
 @registry.command()
@@ -141,19 +152,15 @@ def stop(app: str):
     if os.name == "nt":
         f = service_file(app)
         subprocess.run([sys.executable, str(f), "stop"], check=False)
+    elif sys.platform == "darwin":
+        subprocess.run(["launchctl", "stop", f"flaskpp.{app}"], check=False)
     else:
         subprocess.run(["systemctl", "stop", app], check=False)
-
-    typer.echo(typer.style(f"Service {app} stopped.", fg=typer.colors.YELLOW, bold=True))
 
 
 @registry.command()
 def remove(app: str):
     if not _ensure_admin():
-        typer.echo(typer.style(
-            "You need admin privileges to remove a service.",
-            fg=typer.colors.RED, bold=True
-        ))
         raise typer.Exit(1)
 
     if os.name == "nt":
@@ -161,13 +168,18 @@ def remove(app: str):
         subprocess.run([sys.executable, str(f), "stop"], check=False)
         subprocess.run([sys.executable, str(f), "remove"], check=False)
         f.unlink(missing_ok=True)
+
+    elif sys.platform == "darwin":
+        target = Path.home() / "Library" / "LaunchAgents" / f"{app}.plist"
+        subprocess.run(["launchctl", "unload", str(target)], check=False)
+        target.unlink(missing_ok=True)
+        service_file(app).unlink(missing_ok=True)
+
     else:
         subprocess.run(["systemctl", "stop", app], check=False)
         subprocess.run(["systemctl", "disable", app], check=False)
         service_file(app).unlink(missing_ok=True)
         subprocess.run(["systemctl", "daemon-reload"], check=False)
-
-    typer.echo(typer.style(f"Service {app} removed.", fg=typer.colors.RED, bold=True))
 
 
 def registry_entry(app: typer.Typer):

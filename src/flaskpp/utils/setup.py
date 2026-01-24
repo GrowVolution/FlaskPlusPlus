@@ -27,7 +27,7 @@ def base_config():
         },
 
         "redis": {
-            "default_REDIS_URL": "redis://redis:6379",
+            "default_REDIS_URL": "redis://localhost:6379",
         },
 
         "babel": {
@@ -55,7 +55,7 @@ def base_config():
         "extensions": {
             "default_EXT_SQLALCHEMY": 1,
             "default_EXT_SOCKET": 1,
-            "EXT_BABEL": 0,
+            "default_EXT_BABEL": 1,
             "EXT_FST": 0,
             "EXT_AUTHLIB": 0,
             "EXT_MAILING": 0,
@@ -82,12 +82,14 @@ def welcome():
     typer.echo("\n------------------ " +
                typer.style("Flask++ Setup", bold=True) +
                " ------------------\n")
-    typer.echo("Thank your for using our little foundation to build")
-    typer.echo("your new app! We will try our best to get you ready")
-    typer.echo("within the next two minutes. 💚  Start a timer! ;)\n")
+    typer.echo("Thank you for using our framework to build your own")
+    typer.echo("Flask++ apps! We will try our best to get you ready")
+    typer.echo("within the next two minutes. 💚 Start a timer! 😉\n")
     typer.echo("      " +
-               typer.style("~ GrowVolution 2025 - MIT License ~", fg=typer.colors.CYAN, bold=True) +
-               "\n")
+               typer.style(
+                   "~ GrowVolution 2025 - MIT License ~",
+                       fg=typer.colors.CYAN, bold=True
+               ) + "\n")
     typer.echo("---------------------------------------------------")
     typer.echo("\n")
 
@@ -183,12 +185,16 @@ def setup():
     typer.echo(f"\n---------------- " +
                typer.style("Setup complete.", bold=True) +
                " ----------------\n")
-    typer.echo("You can now run and manage your app(s) with: \n" +
-               typer.style("fpp run [args]", fg=typer.colors.GREEN, bold=True))
-    typer.echo("To create more apps, just run this script again.")
+    typer.echo("You can now run and manage your app(s) using: \n" +
+               typer.style(
+                   "fpp run [args]", fg=typer.colors.GREEN, bold=True
+               ))
+    typer.echo("To create more apps, just run " +
+               typer.style("fpp setup", bold=True) + " again.")
     typer.echo("The settings of your app(s) can be managed in:\n" +
-               typer.style("app_configs/*.conf", fg=typer.colors.MAGENTA, bold=True) +
-               "\n")
+               typer.style(
+                   "app_configs/*.conf", fg=typer.colors.MAGENTA, bold=True
+               ) + "\n")
     typer.echo("----------------- " +
                typer.style("Happy coding!", fg=typer.colors.CYAN, bold=True) +
                " -----------------")

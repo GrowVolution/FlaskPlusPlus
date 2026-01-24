@@ -115,6 +115,19 @@ def check_required_version(requirement: str, version_type: str = "fpp", module_v
     }.get(op, False)
 
 
+def check_priority(priority: int):
+    if priority not in range(11):
+        raise ValueError("Priority must be between 1 and 10.")
+
+
+def build_sorted_tuple(data: dict[int, Any], defaults: tuple = None) -> tuple:
+    sorted_data = dict(sorted(data.items(), reverse=True)).values()
+    result = tuple(sorted_data)
+    if defaults is not None:
+        result += defaults
+    return result
+
+
 def require_extensions(*extensions):
     def decorator(func):
         @wraps(func)

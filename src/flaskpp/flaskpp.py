@@ -140,6 +140,31 @@ class FlaskPP(Flask):
         self._server = Thread(target=self._run_server, daemon=True)
         self._shutdown_flag = Event()
 
+    def _startup(self):
+        with self.app_context():
+            log("info", "Running startup hooks...")
+            [hook() for hook in self._startup_hooks]
+
+    def _shutdown(self):
+        with self.app_context():
+            log("info", "Running shutdown hooks...")
+            [hook() for hook in self._shutdown_hooks]
+
+    def _run_server(self):
+        import uvicorn
+        uvicorn.run(
+            self.to_asgi(),
+            host="0.0.0.0",
+            port=int(os.getenv("SERVER_PORT", "5000")),
+            log_level="debug" if enabled("DEBUG_MODE") else "info",
+        )
+
+    def _handle_shutdown(self, signum: int, frame: "FrameType"):
+        log("info", f"Handling signal {'SIGINT' if signum == signal.SIGINT else 'SIGTERM'}: Shutting down...")
+        if self._shutdown_flag.is_set():
+            return
+        self._shutdown_flag.set()
+
     def to_asgi(self) -> WsgiToAsgi | ASGIApp:
         if self._asgi_app is not None:
             return self._asgi_app
@@ -167,31 +192,6 @@ class FlaskPP(Flask):
         self._shutdown_hooks.append(fn)
         return fn
 
-    def _startup(self):
-        with self.app_context():
-            log("info", "Running startup hooks...")
-            [hook() for hook in self._startup_hooks]
-
-    def _shutdown(self):
-        with self.app_context():
-            log("info", "Running shutdown hooks...")
-            [hook() for hook in self._shutdown_hooks]
-
-    def _run_server(self):
-        import uvicorn
-        uvicorn.run(
-            self.to_asgi(),
-            host="0.0.0.0",
-            port=int(os.getenv("SERVER_PORT", "5000")),
-            log_level="debug" if enabled("DEBUG_MODE") else "info",
-        )
-
-    def _handle_shutdown(self, signum: int, frame: "FrameType"):
-        log("info", f"Handling signal {'SIGINT' if signum == signal.SIGINT else 'SIGTERM'}: Shutting down...")
-        if self._shutdown_flag.is_set():
-            return
-        self._shutdown_flag.set()
-
     def start(self):
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
@@ -209,22 +209,20 @@ class FlaskPP(Flask):
         )
         self.register_blueprint(_fpp_default)
 
-        if enabled("FPP_MODULES"):
-            self.url_prefix = ""
-            register_modules(self)
-            self.static_url_path = f"{self.url_prefix}/static"
-            self.add_url_rule(
-                f"{self.static_url_path}/<path:filename>",
-                endpoint="static",
-                view_func=lambda filename: send_from_directory(Path(self.root_path) / "static", filename)
-            )
+        self.url_prefix = ""
+        register_modules(self)
+        self.static_url_path = f"{self.url_prefix}/static"
+        self.add_url_rule(
+            f"{self.static_url_path}/<path:filename>",
+            endpoint="static",
+            view_func=lambda filename: send_from_directory(Path(self.root_path) / "static", filename)
+        )
 
         if enabled("FRONTEND_ENGINE"):
             from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context_processor(lambda: {
-                "vite_main": engine.vite,
-                "vite_main_prefix": engine.prefix,
+                "vite_main": engine.vite
             })
             self.frontend_engine = engine
             self.on_shutdown(engine.shutdown)
