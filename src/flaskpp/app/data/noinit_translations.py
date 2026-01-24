@@ -1,7 +1,7 @@
 import json
 
 from flaskpp.app.data import commit, _package
-from flaskpp.app.data.babel import add_entry, get_entries
+from flaskpp.app.data.babel import add_entry, get_entries, get_entry
 from flaskpp.babel import valid_state
 from flaskpp.utils import enabled
 from flaskpp.utils.debugger import log
@@ -78,8 +78,11 @@ def setup_db(domain: str = "flaskpp"):
                 _add_entries(key, domain)
 
         for entry in entries:
-            if _translations_en[entry.key] != entry.text:
-                entry.text = _translations_en[entry.key]
+            key = entry.key
+            if _translations_en[key] != entry.text:
+                entry.text = _translations_en[key]
+                entry_de = get_entry(key, "de", domain)
+                entry_de.text = _translations_de[key]
     else:
         log("info", f"Setting up Flask++ translations...")
 

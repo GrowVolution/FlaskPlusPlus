@@ -1,15 +1,10 @@
 # 🧪 Flask++
 
-Tired of setting up Flask from scratch every single time? 🤯  
-With **Flask++**, you can spin up and manage multiple apps in **under two minutes**. ⚡
+Tired of setting up Flask from scratch every single time? 🤯 With **Flask++**, you can spin up and manage multiple apps in **under two minutes**. ⚡
 
-And most important: This is **still Flask**. You won't have to miss the feeling of developing Flask.
-You've got **full control** about how much magic you would like to use and how much this framework should just feel like Flask.
-Not only that: If you experience something, which doesn't feel like Flask anymore... Please feel free to raise an issue and we'll fix that for you asap. ✌🏼️
+And most important: This is **still Flask**. You won't have to miss the feeling of developing Flask. You've got **full control** about how much magic you would like to use and how much this framework should just feel like Flask. Not only that: If you experience something, which doesn't feel like Flask anymore... Please feel free to raise an issue and we'll fix that for you asap. ✌🏼️
 
-It comes with the most common Flask extensions pre-wired and ready to go.  
-Configuration is dead simple – extensions can be bound or unbound with ease.  
-On top of that, it features a plug-&-play style **module system**, so you can just enable or disable functionality as needed. 🎚️
+It comes with the most common Flask extensions pre-wired and ready to go. Configuration is dead simple – extensions can be bound or unbound with ease. On top of that, it features a plug-&-play style **module system**, so you can just enable or disable functionality as needed. 🎚️
 
 ---
 
@@ -20,7 +15,7 @@ If not already done, just install Python 3.10 or higher on your system. Then ins
 pip install flaskpp
 ````
 
-After that you can simply setup your app with the Flask++ CLI:
+After that you can simply set up your app with the Flask++ CLI:
 
 ```bash
 mkdir myproject
@@ -48,11 +43,9 @@ fpp run [-a/--app] myapp [-p/--port] 5000 [-d/--debug]
 fpp --help
 ```
 
-The setup wizard will guide you through the configuration step by step. 🎯
-Once finished, your first app will be running – in less than the time it takes to make coffee. ☕🔥
+The setup wizard will guide you through the configuration step by step. 🎯 Once finished, your first app will be running – in less than the time it takes to make coffee. ☕🔥
 
-**Tip:** We recommend installing Flask++ globally. If your OS does not support installing PyPI packages outside virtual environments,
-you can create a workaround like this:
+**Tip:** We recommend installing Flask++ globally. If your OS does not support installing PyPI packages outside virtual environments, you can create a workaround like this:
 
 ```bash
 sudo su
@@ -91,8 +84,7 @@ newgrp shared
 
 ## 🧩 Modules
 
-To get started with modules, you can generate basic modules using the Flask++ CLI: `fpp modules create [module_name]`
-Use as a starting point for your own modules. 😉
+To get started with modules, you can generate basic modules using the Flask++ CLI: `fpp modules create [module_name]`. Use it as a starting point for your own modules. 😉
 
 ---
 
@@ -146,15 +138,13 @@ For further information about this framework and how to use it, you may like to 
 
 ### 🌱 Let it grow
 
-If you like this project, feel free to **fork it, open issues, or contribute ideas**.
-Every improvement makes life easier for the next developer. 💚
+If you like this project, feel free to **fork it, open issues, or contribute ideas**. Every improvement makes life easier for the next developer. 💚
 
 ---
 
 ### 📜 License
 
-Released under the [MIT License](LICENSE).
-Do whatever you want with it – open-source, commercial, or both. Follow your heart. 💯
+Released under the [MIT License](LICENSE). Do whatever you want with it – open-source, commercial, or both. Follow your heart. 💯
 
 ---
 
