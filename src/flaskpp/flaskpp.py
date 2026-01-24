@@ -80,6 +80,9 @@ class FlaskPP(Flask):
             socket.init_app(self)
 
         if enabled("EXT_BABEL"):
+            if not ext_database:
+                raise RuntimeError("EXT_BABEL requires EXT_SQLALCHEMY to be enabled.")
+
             from flaskpp.app.extensions import babel
             from flaskpp.app.utils.translating import set_locale
             babel.init_app(self)
@@ -91,7 +94,7 @@ class FlaskPP(Flask):
 
         if enabled("EXT_FST"):
             if not ext_database:
-                raise RuntimeError("For EXT_FST EXT_SQLALCHEMY extension must be enabled.")
+                raise RuntimeError("EXT_FST requires EXT_SQLALCHEMY to be be enabled.")
             from flask_security import SQLAlchemyUserDatastore
 
             from flaskpp.app.extensions import security, db
