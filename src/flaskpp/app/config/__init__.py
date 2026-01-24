@@ -2,13 +2,16 @@ from pathlib import Path
 from importlib import import_module
 from typing import Callable, TYPE_CHECKING
 
-from flaskpp.utils import check_priority, build_sorted_tuple
 from flaskpp.app.config.default import DefaultConfig
+from flaskpp.utils import check_priority, build_sorted_tuple
 
 if TYPE_CHECKING:
     from flaskpp import FlaskPP
 
 _config_map: dict[int, list[type]] = {}
+
+
+class ConfigMeta(type): pass
 
 
 def init_configs(app: "FlaskPP"):
@@ -32,14 +35,26 @@ def register_config(priority: int = 1) -> Callable:
     def decorator(cls):
         if not priority in _config_map:
             _config_map[priority] = []
+
+        if not isinstance(type(cls), ConfigMeta):
+            cls = ConfigMeta(cls.__name__, cls.__bases__, dict(cls.__dict__))
+
         _config_map[priority].append(cls)
         return cls
+
     return decorator
 
 
-def build_config() -> type:
-    return type(
+def build_config() -> ConfigMeta:
+    cls = DefaultConfig
+    default_conf = ConfigMeta(cls.__name__, cls.__bases__, dict(cls.__dict__))
+
+    bases = tuple()
+    for configs in build_sorted_tuple(_config_map):
+        bases += tuple(configs)
+
+    return ConfigMeta(
         "Config",
-        build_sorted_tuple(_config_map, (DefaultConfig, )),
+        bases + (default_conf, ),
         {}
     )

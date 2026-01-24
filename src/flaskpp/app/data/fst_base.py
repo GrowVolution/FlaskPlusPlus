@@ -1,9 +1,14 @@
 from flask_security.models import fsqla_v3 as fsqla
-from typing import Callable
+from importlib import import_module
+from pathlib import Path
+from typing import Callable, TYPE_CHECKING
 import inspect
 
 from flaskpp.utils import check_priority, build_sorted_tuple
 from flaskpp.app.extensions import db
+
+if TYPE_CHECKING:
+    from flaskpp import FlaskPP
 
 _user_mixins: dict[int, list[type]] = {}
 _role_mixins: dict[int, list[type]] = {}
@@ -14,6 +19,21 @@ def _valid_mixin(cls: type, kind: str):
         raise TypeError(f"{kind} mixin must be a class.")
     if hasattr(cls, "__tablename__"):
         raise TypeError(f"{kind} mixins must not define tables.")
+
+
+def init_mixins(app: "FlaskPP"):
+    modules = Path(app.root_path) / "modules"
+
+    if not modules.exists() or not modules.is_dir():
+        return
+
+    for module in modules.iterdir():
+        if not module.is_dir():
+            continue
+
+        fst_data = module / "data" / "noinit_fst.py"
+        if fst_data.exists():
+            import_module(f"modules.{module.name}.data.noinit_fst")
 
 
 def user_mixin(priority: int = 1) -> Callable:
@@ -40,18 +60,26 @@ def role_mixin(priority: int = 1) -> Callable:
     return decorator
 
 
-def _build_user_model() -> type:
+def build_user_model() -> type:
+    bases = tuple()
+    for mixins in build_sorted_tuple(_user_mixins):
+        bases += tuple(mixins)
+
     return type(
         "User",
-        build_sorted_tuple(_user_mixins, (db.Model, fsqla.FsUserMixin)),
+        bases + (db.Model, fsqla.FsUserMixin),
         {}
     )
 
 
-def _build_role_model() -> type:
+def build_role_model() -> type:
+    bases = tuple()
+    for mixins in build_sorted_tuple(_role_mixins):
+        bases += tuple(mixins)
+
     return type(
         "Role",
-        build_sorted_tuple(_role_mixins, (db.Model, fsqla.FsRoleMixin)),
+        bases + (db.Model, fsqla.FsRoleMixin),
         {}
     )
 
@@ -63,7 +91,3 @@ user_roles = db.Table(
 )
 
 fsqla.FsModels.set_db_info(db)
-
-
-User = _build_user_model()
-Role = _build_role_model()

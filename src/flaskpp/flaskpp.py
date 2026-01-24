@@ -95,10 +95,15 @@ class FlaskPP(Flask):
             from flask_security import SQLAlchemyUserDatastore
 
             from flaskpp.app.extensions import security, db
-            from flaskpp.app.data.fst_base import User, Role
+            from flaskpp.app.data.fst_base import init_mixins, build_user_model, build_role_model
+            init_mixins(self)
             security.init_app(
                 self,
-                SQLAlchemyUserDatastore(db, User, Role)
+                SQLAlchemyUserDatastore(
+                    db,
+                    build_user_model(),
+                    build_role_model()
+                )
             )
 
         if enabled("EXT_AUTHLIB"):

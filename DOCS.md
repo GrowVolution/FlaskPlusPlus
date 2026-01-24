@@ -810,7 +810,7 @@ default security features and utilities.
 To plug in your own mixins, we provide decorators that you can use inside your modules data package, for example:
 
 ```python
-# module_package/data/fst.py
+# module_package/data/noinit_fst.py
 from flaskpp.app.data.fst_base import user_mixin #, role_mixin
 from flaskpp.app.extensions import db
 
