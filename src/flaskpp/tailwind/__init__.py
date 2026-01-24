@@ -54,12 +54,11 @@ def generate_asset(in_file: Path, out_file: Path, cwd: Path):
 def generate_tailwind_css(app: Flask):
     out =  (home.parent / "app" / "static" / "css" / "tailwind.css")
 
-    if not out.exists():
-        generate_asset(
-            out.parent / "tailwind_raw.css",
-            out,
-            home.parent
-        )
+    generate_asset(
+        out.parent / "tailwind_raw.css",
+        out,
+        home.parent
+    )
 
     root = Path(app.root_path).resolve()
     for d in root.rglob("static/css"):

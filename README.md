@@ -51,24 +51,48 @@ fpp --help
 The setup wizard will guide you through the configuration step by step. 🎯
 Once finished, your first app will be running – in less than the time it takes to make coffee. ☕🔥
 
-Tip: In our [example folder](examples) we do also provide complete setup files for [Windows](examples/fpp_project/setup.bat) and [Linux](examples/fpp_project/setup.sh) servers.
-If your want to use them, just download the file you need into your project folder and do:
+**Tip:** We recommend installing Flask++ globally. If your OS does not support installing PyPI packages outside virtual environments,
+you can create a workaround like this:
 
 ```bash
-cd path/to/project
-./setup.[sh|bat]
-```
+sudo su
+cd /opt
+mkdir flaskpp
+cd flaskpp
 
-In this case only on Windows systems you need to install Python before. On Linux systems just run the script as root to ensure python. ✨
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
+pip install flaskpp
+
+cat > cli <<EOF
+#!/usr/bin/env bash
+exec /opt/flaskpp/.venv/bin/python -m flaskpp "$@"
+EOF
+chmod +x cli
+ln -s /opt/flaskpp/cli /usr/local/bin/fpp
+
+cd ..
+groupadd shared
+find /home -mindepth 1 -maxdepth 1 -type d -print0 |
+while IFS= read -r -d '' dir; do
+    user=$(basename "$dir")
+    usermod -aG shared "$user"
+done
+chown -R root:shared flaskpp
+chmod -R 2775 flaskpp
+exit
+
+newgrp shared
+```
 
 ---
 
 ## 🧩 Modules
 
-Inside the example folder you’ll also find an [example module](examples/example_module) to get you started.
-Use it as an inspiration for your own modules or generate basic modules using the Flask++ CLI. 😉
-
-`fpp modules create module_name`
+To get started with modules, you can generate basic modules using the Flask++ CLI: `fpp modules create [module_name]`
+Use as a starting point for your own modules. 😉
 
 ---
 
@@ -112,7 +136,11 @@ server {
 ---
 
 ## 📝 Documentation
+
 For further information about this framework and how to use it, you may like to read our [documentation](DOCS.md). 🫶🏼
+
+> ⚠️ Note: The documentation is intended as an architectural and reference guide, it does not provide a step-by-step tutorial.
+> This is especially because Flask++ is a CLI first framework that provides a zero-code bootstrapping experience.
 
 ---
 

@@ -84,38 +84,44 @@ def register_modules(app: "FlaskPP | Flask"):
 
     loader_context = {}
     primary_loader = None
-    for module in installed_modules(Path(app.root_path) / "modules", False):
-        mod_id = module[0]
-        if not enabled(mod_id):
-            continue
 
-        try:
-            mod = import_module(f"modules.{mod_id}")
-        except ModuleNotFoundError as e:
-            exception(e, f"Could not import module '{mod_id}' for app '{app_name}'.")
-            continue
+    def register():
+        nonlocal loader_context, primary_loader
 
-        from flaskpp import Module
-        module = getattr(mod, "module", None)
-        if not isinstance(module, Module):
-            log("error", f"Missing 'module: Module' in module '{mod_id}'.")
-            continue
+        for module in installed_modules(Path(app.root_path) / "modules", False):
+            mod_id = module[0]
+            if not enabled(mod_id):
+                continue
 
-        try:
-            log("info", f"Registering: {module}")
-        except ManifestError as e:
-            exception(e, f"Failed to log {mod_id}.module")
-            continue
+            try:
+                mod = import_module(f"modules.{mod_id}")
+            except ModuleNotFoundError as e:
+                exception(e, f"Could not import module '{mod_id}' for app '{app_name}'.")
+                continue
 
-        try:
-            is_home = os.getenv("HOME_MODULE", "").lower() == mod_id
-            module.enable(app, is_home)
-            loader_context[module.name] = FileSystemLoader(f"modules/{mod_id}/templates")
-            if is_home:
-                primary_loader = loader_context[module.name]
-            log("info", f"Registered module '{module.module_name}' as {'home' if is_home else 'path'}.")
-        except Exception as e:
-            exception(e, f"Failed registering module '{module.module_name}'.")
+            from flaskpp import Module
+            module = getattr(mod, "module", None)
+            if not isinstance(module, Module):
+                log("error", f"Missing 'module: Module' in module '{mod_id}'.")
+                continue
+
+            try:
+                log("info", f"Registering: {module}")
+            except ManifestError as e:
+                exception(e, f"Failed to log {mod_id}.module")
+                continue
+
+            try:
+                is_home = os.getenv("HOME_MODULE", "").lower() == mod_id
+                module.enable(app, is_home)
+                loader_context[module.name] = FileSystemLoader(f"modules/{mod_id}/templates")
+                if is_home:
+                    primary_loader = loader_context[module.name]
+                log("info", f"Registered module '{module.module_name}' as {'home' if is_home else 'path'}.")
+            except Exception as e:
+                exception(e, f"Failed registering module '{module.module_name}'.")
+
+    if enabled("FPP_MODULES"): register()
 
     loaders = []
     if primary_loader:

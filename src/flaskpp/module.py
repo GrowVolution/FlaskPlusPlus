@@ -47,6 +47,7 @@ class Module(Blueprint):
         self.context = {
             "NAME": self.info["id"],
         }
+        self._handlers = {}
         self.home = False
 
         self.enable = require_extensions(*self.required_extensions)(self._enable)
@@ -71,16 +72,25 @@ class Module(Blueprint):
             self.url_prefix = f"/{self.name}"
             self.static_url_path = f"/{self.name}/static"
 
+        try:
+            handling = import_module(f"{self.import_name}.handling")
+            init_handling = getattr(handling, "init_handling", None)
+            if not init_handling:
+                raise ImportError("Missing init function in handling.")
+            init_handling(self)
+        except (ModuleNotFoundError, ImportError, TypeError) as e:
+            log("warn", f"Failed to initialize handling for {self.module_name}: {e}")
+
         if self._init_routes:
             self.init_routes()
 
         if "sqlalchemy" in self.required_extensions:
             try:
                 data = import_module(f"{self.import_name}.data")
-                init = getattr(data, "init_models", None)
-                if not init:
+                init_data = getattr(data, "init_models", None)
+                if not init_data:
                     raise ImportError("Missing init function in data.")
-                init()
+                init_data(self)
             except (ModuleNotFoundError, ImportError, TypeError) as e:
                 log("warn", f"Failed to initialize database models for '{self.module_name}': {e}")
 
@@ -88,13 +98,14 @@ class Module(Blueprint):
             from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context["vite"] = engine.vite
-            self.context["vite_prefix"] = engine.prefix
             self.frontend_engine = engine
             app.on_shutdown(engine.shutdown)
 
         self.context_processor(lambda: dict(
             **self.context,
-            tailwind=Markup(f"<link rel='stylesheet' href='{url_for(f'{self.name}.static', filename='css/tailwind.css')}'>")
+            tailwind=Markup(f"<link rel='stylesheet' href='{
+                self.url_for('static', filename='css/tailwind.css')
+            }'>")
         ))
 
         if self._on_enable is not None:
@@ -118,23 +129,23 @@ class Module(Blueprint):
             self.module_name = module_data["name"]
 
         if not "description" in module_data:
-            log("warn", f"Missing description of '{module_data['name']}'.")
+            log("warn", f"Missing description of '{self.module_name}'.")
 
         if not "author" in module_data:
-            log("warn", f"Author of '{module_data['name']}' not defined.")
+            log("warn", f"Author of '{self.module_name}' not defined.")
 
         if not "requires" in module_data:
-            log("warn", f"Requirements of '{module_data['name']}' not defined.")
+            log("warn", f"Requirements of '{self.module_name}' not defined.")
 
         else:
             requirements = module_data["requires"]
             if not "fpp" in requirements:
-                log("warn", f"Required Flask++ version of '{module_data['name']}' not defined.")
+                log("warn", f"Required Flask++ version of '{self.module_name}' not defined.")
             else:
                 fulfilled = check_required_version(requirements["fpp"])
                 if not fulfilled:
                     raise ModuleError(
-                        f"Module '{module_data['name']}' requires Flask++ version {requirements['fpp']}."
+                        f"Module '{self.module_name}' requires Flask++ version {requirements['fpp']}."
                     )
             if "modules" in requirements:
                 from flaskpp.modules import installed_modules
@@ -148,7 +159,7 @@ class Module(Blueprint):
                     new = {}
                     for r in requirement:
                         if not isinstance(r, str):
-                            raise ManifestError(f"Invalid module requirement '{r}' for '{module_data['name']}'.")
+                            raise ManifestError(f"Invalid module requirement '{r}' for '{self.module_name}'.")
                         r = r.split("@")
                         if len(r) == 2:
                             m, v = r
@@ -159,7 +170,7 @@ class Module(Blueprint):
                     requirement = new
 
                 if not isinstance(requirement, dict):
-                    raise ManifestError(f"Invalid modules requirement type '{requirement}' for '{module_data['name']}'.")
+                    raise ManifestError(f"Invalid modules requirement type '{requirement}' for '{self.module_name}'.")
 
                 required_modules = [m for m in requirement]
                 fulfilled_modules = []
@@ -174,7 +185,7 @@ class Module(Blueprint):
                 if len(required_modules) != len(fulfilled_modules):
                     missing = [m for m in required_modules if m not in fulfilled_modules]
                     raise ModuleError(
-                        f"Missing or mismatching module requirements for '{module_data['name']}': {missing}"
+                        f"Missing or mismatching module requirements for '{self.module_name}': {missing}"
                     )
 
         return module_data
@@ -203,10 +214,25 @@ class Module(Blueprint):
         from flaskpp.app.utils.translating import tn
         return tn(self.wrap_message(singular), plural, n, False)
 
+    def handler(self, name: str) -> Callable:
+        def decorator(func):
+            def wrapper(*args):
+                return func(self, *args)
+            self._handlers[name] = wrapper
+            return wrapper
+        return decorator
+
+    def handle_request(self, handler_name: str) -> Callable:
+        def no_handler(*_, **__):
+            raise NotImplementedError(f"Module '{self.module_name}' does not have a handler called '{handler_name}'.")
+        return self._handlers.get(handler_name, no_handler)
+
     def render_template(self, template: str, **context) -> str:
         render_name = template if self.home else f"{self.name}/{template}"
-
         return render_template(render_name, **context)
+
+    def url_for(self, endpoint: str, **kwargs) -> str:
+        return url_for(f"{self.name}.{endpoint}", **kwargs)
 
     def on_enable(self, fn: Callable) -> Callable:
         if not takes_arg(fn, "app") or required_arg_count(fn) != 1:
