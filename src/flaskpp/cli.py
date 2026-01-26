@@ -1,4 +1,5 @@
 from importlib.metadata import version
+from pathlib import Path
 import typer
 
 from flaskpp._help import help_message
@@ -11,6 +12,7 @@ from flaskpp.fpp_node.cli import node_entry
 from flaskpp.tailwind.cli import tailwind_entry
 
 app = typer.Typer(help="Flask++ CLI")
+cwd = Path.cwd()
 
 
 @app.callback(invoke_without_command=True)

@@ -278,6 +278,10 @@ A fully qualified manifest file would then look like this:
   "version": "0.1",
   "requires": {
     "fpp": ">=0.3.5",           // the minimum required version of Flask++
+    "packages": [               // PyPI packages that are required by your module
+      // e.g. "numpy", "pandas",
+      // ...
+    ],
     "modules": {                // other modules that are required by your module
       "module_id_01": "==0.2",
       "module_id_02": "<0.7"
@@ -434,6 +438,10 @@ def init_models(mod: Module):
         rel = file.relative_to(_package).with_suffix("")
         import_module(f"{mod.import_name}.data.{".".join(rel.parts)}")
 ```
+
+#### Extracting
+
+The Module class provides a `module.extract()` function. This function is meant to be used by the Flask++ CLI to extract the modules globals to the app's static / templates when the module gets installed. This is especially useful if your module needs to install global templates if it is not meant to be installed as a home module. To use this feature, you need to create an **extract** folder containing a **templates** and/or **static** folder inside your module package. Their contents will then be extracted to the app's static and templates folder.
 
 ### Working with Modules
 

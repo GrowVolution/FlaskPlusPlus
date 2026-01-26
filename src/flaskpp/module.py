@@ -3,8 +3,9 @@ from markupsafe import Markup
 from importlib import import_module
 from pathlib import Path
 from typing import Callable, TYPE_CHECKING
-import json
+import json, typer, subprocess, sys
 
+from flaskpp.cli import cwd
 from flaskpp.utils import (takes_arg, required_arg_count, require_extensions,
                            enabled, check_required_version)
 from flaskpp.utils.debugger import log
@@ -34,7 +35,7 @@ class ModuleVersion(tuple):
 
 class Module(Blueprint):
     def __init__(self, file: str, import_name: str, required_extensions: list = None,
-                 init_routes_on_enable: bool = True):
+                 init_routes_on_enable: bool = True, allowed_for_home: bool = True):
         if not "modules." in import_name:
             raise ModuleError("Modules have to be created in the modules package.")
 
@@ -53,6 +54,7 @@ class Module(Blueprint):
         self.enable = require_extensions(*self.required_extensions)(self._enable)
         self._on_enable = None
         self._init_routes = init_routes_on_enable
+        self._allow_home = allowed_for_home
 
         super().__init__(
             self.info["id"],
@@ -64,7 +66,9 @@ class Module(Blueprint):
         return f"<{self.module_name} {self.version}> {self.info.get('description', '')}"
 
     def _enable(self, app: "FlaskPP", home: bool):
-        if home:
+        if home and not self._allow_home:
+            raise ModuleError(f"Module '{self.module_name}' is not allowed to be registered as home module.")
+        elif home:
             self.static_url_path = "/static"
             app.url_prefix = "/app"
             self.home = True
@@ -139,6 +143,7 @@ class Module(Blueprint):
 
         else:
             requirements = module_data["requires"]
+
             if not "fpp" in requirements:
                 log("warn", f"Required Flask++ version of '{self.module_name}' not defined.")
             else:
@@ -147,13 +152,11 @@ class Module(Blueprint):
                     raise ModuleError(
                         f"Module '{self.module_name}' requires Flask++ version {requirements['fpp']}."
                     )
+
             if "modules" in requirements:
                 from flaskpp.modules import installed_modules
                 modules = installed_modules(Path(self.root_path).parent)
                 requirement = requirements["modules"]
-
-                if isinstance(requirement, str):
-                    requirement = [requirement]
 
                 if isinstance(requirement, list):
                     new = {}
@@ -170,7 +173,7 @@ class Module(Blueprint):
                     requirement = new
 
                 if not isinstance(requirement, dict):
-                    raise ManifestError(f"Invalid modules requirement type '{requirement}' for '{self.module_name}'.")
+                    raise ManifestError(f"Invalid modules requirement type for '{self.module_name}': {type(requirement)}")
 
                 required_modules = [m for m in requirement]
                 fulfilled_modules = []
@@ -189,6 +192,66 @@ class Module(Blueprint):
                     )
 
         return module_data
+
+    def extract(self):
+        extract_path = self.root_path / "extract"
+
+        def for_dir(name):
+            for file in (extract_path / name).rglob("*"):
+                if not file.is_file():
+                    continue
+
+                rel = file.relative_to(extract_path)
+                dst = cwd / rel
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                if dst.exists():
+                    typer.echo(typer.style(
+                        f"Module '{self.module_name}' couldn't extract '{'/'.join(rel.parts)}': "
+                         "File already exists.", fg=typer.colors.YELLOW, bold=True
+                    ))
+                    continue
+
+                dst.write_bytes(
+                    file.read_bytes()
+                )
+
+        for_dir("static")
+        for_dir("templates")
+
+    def install_packages(self):
+        if not "requires" in self.info:
+            return
+
+        requirements = self.info["requires"]
+        if not "packages" in requirements:
+            return
+
+        packages = requirements["packages"]
+        if not isinstance(packages, list):
+            typer.echo(typer.style(
+                f"Invalid packages requirement type for '{self.module_name}': {type(packages)}",
+                fg=typer.colors.YELLOW, bold=True
+            ))
+            return
+
+        for package in packages:
+            typer.echo(f"Installing required package '{package}'...")
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", f"install --upgrade {package}"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode != 0:
+                typer.echo(typer.style(
+                    f"Failed to install package '{package}' for '{self.module_name}': {result.stderr}",
+                    fg=typer.colors.RED, bold=True
+                ))
+
+        typer.echo(typer.style(
+            f"Finished installing required packages for '{self.module_name}'.",
+            fg=typer.colors.GREEN
+        ))
+
 
     def init_routes(self):
         try:

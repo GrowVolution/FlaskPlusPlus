@@ -5,6 +5,7 @@ from configparser import ConfigParser
 from typing import TYPE_CHECKING
 import os, typer, json
 
+from flaskpp.cli import cwd
 from flaskpp.module import basic_checked_data, valid_version
 from flaskpp.utils import enabled
 from flaskpp.utils.debugger import log, exception
@@ -14,9 +15,8 @@ if TYPE_CHECKING:
     from flask import Flask
     from flaskpp import FlaskPP
 
-home = Path.cwd()
-module_home = home / "modules"
-conf_path = home / "app_configs"
+module_home = cwd / "modules"
+conf_path = cwd / "app_configs"
 _modules = {}
 
 

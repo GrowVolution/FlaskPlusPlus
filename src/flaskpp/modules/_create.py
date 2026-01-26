@@ -33,6 +33,7 @@ def create_module(module_name: str):
         "author": sanitize_text(input("Enter your name or nickname: ")),
         "requires": {
             "fpp": f">={str(version()).strip("v")}",
+            "packages": [],
             "modules": {}
         }
     }
@@ -94,6 +95,10 @@ def create_module(module_name: str):
         creator_templates.module_vite_index
     )
     (css / "tailwind_raw.css").write_text(creator_templates.tailwind_raw)
+
+    extract = module_dst / "extract"
+    (extract / "static").mkdir(parents=True, exist_ok=True)
+    (extract / "templates").mkdir(exist_ok=True)
 
     typer.echo(typer.style(f"Setting up requirements...", bold=True))
 
