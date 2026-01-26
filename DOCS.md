@@ -405,7 +405,7 @@ def init_routes(mod: Module):
 
 #### Config
 
-You can optionally create a **config.py** file inside your module package. There you can create your modules config class (like mentioned earlier in the ["Configuration" chapter](#configuration)) if you need:
+You can optionally create a **config.py** file inside your module package. There you can create your modules config class (like mentioned earlier in the ["Configuration" chapter](#configuration)) and add a config function for the `fpp setup` command if you need:
 
 ```python
 from flaskpp.app.config import register_config
@@ -416,6 +416,21 @@ from flaskpp.app.config import register_config
 )
 class ModuleConfig:
     # TODO: Overwrite default config values or provide your own
+    pass
+
+def module_config():
+    # return {
+        # TODO: Write required config data (will be prompted by the setup if module is set to 1)
+    
+        # "protected_MY_SECRET": token_hex(32),
+        # -> protected keys won't be prompted to the user
+    
+        # "default_FEATURE_KEY": "Hello World!",
+        # -> default keys will be prompted with their default value shown (and written with if input left empty)
+    
+        # "ADDITIONAL_DATA": "",
+        # -> simple config prompt without default value
+    # }
     pass
 ```
 

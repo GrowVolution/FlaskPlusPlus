@@ -78,6 +78,33 @@ def base_config():
     }
 
 
+def setup_config(config: ConfigParser, base: dict, config_file_exists: bool = False) -> ConfigParser:
+    for k, v in base.items():
+        if k not in config:
+            typer.echo(typer.style(f"\n{k.upper()}", bold=True))
+            config[k] = {}
+
+        for key, value in v.items():
+            if key.startswith("protected_"):
+                key = key.removeprefix("protected_")
+                if not (config_file_exists and config[k].get(key)):
+                    config[k][key] = str(value)
+                continue
+
+            if key.startswith("default_"):
+                key = key.removeprefix("default_")
+                input_prompt = f"{key} ({value}): "
+            else:
+                input_prompt = f"{key}: "
+
+            val = sanitize_text(input(input_prompt)).strip()
+            if not val:
+                val = str(value)
+            config[k][key] = val
+
+    return config
+
+
 def welcome():
     typer.echo("\n------------------ " +
                typer.style("Flask++ Setup", bold=True) +
@@ -109,6 +136,7 @@ def setup_app(app_number: int):
 
     app = app_name(app_number)
     conf = conf_path / f"{app}.conf"
+
     conf_exists = conf.exists()
     if conf_exists:
         config.read(conf)
@@ -116,26 +144,7 @@ def setup_app(app_number: int):
     typer.echo(typer.style("Okay, let's setup your app config.\n", fg=typer.colors.YELLOW, bold=True) +
                typer.style("Leave blank to stick with the defaults.", fg=typer.colors.MAGENTA))
 
-    for k, v in base_config().items():
-        if k not in config:
-            config[k] = {}
-        for key, value in v.items():
-            if key.startswith("protected_"):
-                key = key.removeprefix("protected_")
-                if not (conf_exists and config[k].get(key)):
-                    config[k][key] = str(value)
-                continue
-
-            if key.startswith("default_"):
-                key = key.removeprefix("default_")
-                input_prompt = f"{key} ({value}): "
-            else:
-                input_prompt = f"{key}: "
-
-            val = sanitize_text(input(input_prompt)).strip()
-            if not val:
-                val = str(value)
-            config[k][key] = val
+    setup_config(config, base_config(), conf_exists)
 
     with open(conf, "w") as f:
         config.write(f)

@@ -79,11 +79,28 @@ def init_routes(mod: Module):
 
 module_config = """
 from flaskpp.app.config import register_config
+from security import token_hex
 
 
 @register_config()
 class {name}Config:
     # TODO: Write your modules required config data here
+    pass
+    
+    
+def module_config():
+    # return {
+        # TODO: Write required config data (will be prompted by the setup if module is set to 1)
+        
+        # "protected_MY_SECRET": token_hex(32),
+        # -> protected keys won't be prompted to the user
+        
+        # "default_FEATURE_KEY": "Hello World!",
+        # -> default keys will be prompted with their default value shown (and written with if input left empty)
+        
+        # "ADDITIONAL_DATA": "",
+        # -> simple config prompt without default value
+    # }
     pass
 """
 

@@ -1,4 +1,3 @@
-from pathlib import Path
 import typer, subprocess, sys, os
 
 from flaskpp import _fpp_root
@@ -10,7 +9,7 @@ from flaskpp.fpp_node.fpp_vite import prepare_vite
 def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_node: bool, skip_vite: bool):
     typer.echo(typer.style("Creating default structure...", bold=True))
 
-    root = Path.cwd()
+    from flaskpp.cli import cwd
 
     if not skip_defaults:
         from flaskpp.utils.setup import conf_path
@@ -23,15 +22,15 @@ def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_
         service_path.mkdir(exist_ok=True)
 
 
-        templates = root / "templates"
+        templates = cwd / "templates"
         templates.mkdir(exist_ok=True)
-        static = root / "static"
+        static = cwd / "static"
         static.mkdir(exist_ok=True)
         css = static / "css"
         css.mkdir(exist_ok=True)
         (static / "js").mkdir(exist_ok=True)
         (static / "img").mkdir(exist_ok=True)
-        with open(root / "main.py", "w") as f:
+        with open(cwd / "main.py", "w") as f:
             f.write("""
 from flaskpp import FlaskPP
             
@@ -77,10 +76,27 @@ if __name__ == "__main__":
 }
         """)
 
+        (cwd / ".gitignore").write_text("""
+[folders]
+__pycache__/
+app_configs/
+services/
+modules/
+instance/
+migrations/
+translations/
+dist/
+logs/
+
+[files]
+messages.pot
+tailwind.css
+""")
+
     if not skip_babel:
         typer.echo(typer.style("Generating default translations...", bold=True))
 
-        translations = root / "translations"
+        translations = cwd / "translations"
         translations.mkdir(exist_ok=True)
 
         pot = "messages.pot"

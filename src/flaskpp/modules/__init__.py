@@ -25,7 +25,8 @@ def generate_modlib(app_name: str):
     config = ConfigParser()
     config.optionxform = str
 
-    if conf.exists():
+    conf_exists = conf.exists()
+    if conf_exists:
         config.read(conf)
     if "modules" not in config:
         config["modules"] = {}
@@ -40,6 +41,26 @@ def generate_modlib(app_name: str):
         if not val:
             val = "0"
         config["modules"][mod_id] = val
+
+        if enabled(val):
+            from flaskpp.utils.setup import setup_config
+            try:
+                conf = import_module(f"modules.{module[2]}.config")
+                module_config = getattr(conf, "module_config", None)
+                if not module_config:
+                    raise ImportError()
+
+                base_config = module_config()
+                if not base_config:
+                    raise ImportError()
+
+                base = {
+                    mod_id: base_config
+                }
+                setup_config(config, base, conf_exists)
+                typer.echo("\n")
+            except (ModuleNotFoundError, ImportError, TypeError):
+                pass
 
     set_home = input(
         "\n" +
@@ -94,7 +115,7 @@ def register_modules(app: "FlaskPP | Flask"):
                 continue
 
             try:
-                mod = import_module(f"modules.{mod_id}")
+                mod = import_module(f"modules.{module[2]}")
             except ModuleNotFoundError as e:
                 exception(e, f"Could not import module '{mod_id}' for app '{app_name}'.")
                 continue
@@ -135,7 +156,7 @@ def register_modules(app: "FlaskPP | Flask"):
     app.jinja_loader = ChoiceLoader(loaders)
 
 
-def installed_modules(package: Path, do_log: bool = True) -> list[tuple[str, str]]:
+def installed_modules(package: Path, do_log: bool = True) -> list[tuple[str, str, str]]:
     if _modules.get(package):
         return _modules[package]
 
@@ -153,7 +174,7 @@ def installed_modules(package: Path, do_log: bool = True) -> list[tuple[str, str
             module_data = basic_checked_data(manifest)
             version = valid_version(module_data["version"])
             _modules[package].append(
-                (module_data.get("id", module.name), version)
+                (module_data.get("id", module.name), version, module.name)
             )
         except (ModuleNotFoundError, FileNotFoundError, AttributeError, ManifestError, json.JSONDecodeError) as e:
             if do_log: log("warn", f"Invalid module package '{module.name}' in {package}: {e}.")

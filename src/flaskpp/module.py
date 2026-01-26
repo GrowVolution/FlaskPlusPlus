@@ -237,7 +237,7 @@ class Module(Blueprint):
         for package in packages:
             typer.echo(f"Installing required package '{package}'...")
             result = subprocess.run(
-                [sys.executable, "-m", "pip", f"install --upgrade {package}"],
+                [sys.executable, "-m", "pip", "install", "--upgrade", package],
                 capture_output=True,
                 text=True
             )
