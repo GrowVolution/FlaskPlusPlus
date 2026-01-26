@@ -252,14 +252,16 @@ def version_check(v: str) -> tuple[bool, str]:
 
     first_char_invalid = False
     try:
-        if version_str.startswith("v"):
-            version_str = version_str[1:]
         int(version_str[0])
     except ValueError:
         first_char_invalid = True
 
     if  first_char_invalid \
-            or (" " in version_str and not (version_str.endswith("alpha") or version_str.endswith("beta"))):
+            or (" " in version_str and not (
+            version_str.endswith("alpha")
+            or version_str.endswith("beta")
+            or version_str.endswith("rc")
+    )):
         return False, "Invalid version string format."
 
     try:

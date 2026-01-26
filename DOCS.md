@@ -35,7 +35,7 @@ SERVER_NAME = localhost
 SECRET_KEY = supersecret
 
 [database]
-DATABASE_URL = sqlite:///appdata.db
+DATABASE_URI = sqlite:///appdata.db
 
 [redis]
 REDIS_URL = redis://localhost:6379
@@ -109,7 +109,7 @@ class DefaultConfig:
     # -------------------------------------------------
     # Flask-SQLAlchemy & Flask-Migrate
     # -------------------------------------------------
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///database.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "sqlite:///database.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # -------------------------------------------------
@@ -311,9 +311,9 @@ module = Module(
     #    "api",
     #    "jwt_extended"
     ],
-    
-    # And you can optionally turn off init_routes_on_enable (default is True):
-    False
+    # init_routes_on_enable=False
+    # -> You can optionally turn off automated route initialization when the module gets enabled.
+    # This could be especially useful, if you are working with socket i18n. (More in the later chapters.)
 )
 
 # Now if you need to do stuff when your module gets enabled:
@@ -354,11 +354,15 @@ def init_handling(mod: Module):
     for file in _package.rglob("*.py"):
         if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
-        handler_name = file.stem
+
+        rel = file.relative_to(_package).with_suffix("")
+        handler_name = ".".join(rel.parts)
+
         handler = import_module(f"{mod.import_name}.handling.{handler_name}")
         handle_request = getattr(handler, "handle_request", None)
         if not handle_request:
             continue
+
         mod.handler(handler_name)(handle_request)
 ```
 
@@ -427,7 +431,8 @@ def init_models(mod: Module):
     for file in _package.rglob("*.py"):
         if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
-        import_module(f"{mod.import_name}.data.{file.stem}")
+        rel = file.relative_to(_package).with_suffix("")
+        import_module(f"{mod.import_name}.data.{".".join(rel.parts)}")
 ```
 
 ### Working with Modules
@@ -624,7 +629,10 @@ module = Module(
         "sqlalchemy",
         "socket",
         "babel"
-    ]
+    ],
+    False
+    # -> False to install translations before route setup.
+    # This is especially useful if you are using translations inside your route setup.
 )
 
 @module.on_enable
@@ -639,6 +647,9 @@ def enable(app: FlaskPP):
             # -> default is module.name
         )   # This will register the domain_name as the modules translation domain, pass it as a variable called "DOMAIN" to the
             # context processor and automatically cause _ and ngettext to primarily resolve translation keys from that domain.
+        
+    # Now you can enable routes after you registered your translations
+    module.init_routes()
 
 # If you now do something like this, for example:
 from flask import render_template_string

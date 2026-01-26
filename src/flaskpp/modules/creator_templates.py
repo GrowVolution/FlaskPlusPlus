@@ -36,11 +36,15 @@ def init_handling(mod: Module):
     for file in _package.rglob("*.py"):
         if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
-        handler_name = file.stem
+
+        rel = file.relative_to(_package).with_suffix("")
+        handler_name = ".".join(rel.parts)
+
         handler = import_module(f"{mod.import_name}.handling.{handler_name}")
         handle_request = getattr(handler, "handle_request", None)
         if not handle_request:
             continue
+
         mod.handler(handler_name)(handle_request)
 """
 
@@ -118,7 +122,8 @@ def init_models(mod: Module):
     for file in _package.rglob("*.py"):
         if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
-        import_module(f"{mod.import_name}.data.{file.stem}")
+        rel = file.relative_to(_package).with_suffix("")
+        import_module(f"{mod.import_name}.data.{".".join(rel.parts)}")
 """
 
 tailwind_raw = """

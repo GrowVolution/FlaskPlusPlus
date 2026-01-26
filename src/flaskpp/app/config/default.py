@@ -11,7 +11,7 @@ class DefaultConfig:
     PROXY_FIX = False
     PROXY_COUNT = 1
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///database.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "sqlite:///database.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     RATELIMIT_ENABLED = True

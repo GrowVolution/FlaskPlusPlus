@@ -3,7 +3,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import typer
 
-from flaskpp.utils import prompt_yes_no
+from flaskpp.utils import prompt_yes_no, sanitize_text
 from flaskpp.modules import generate_modlib
 
 counting_map = {
@@ -23,7 +23,7 @@ def base_config():
         },
 
         "database": {
-            "default_DATABASE_URL": "sqlite:///appdata.db",
+            "default_DATABASE_URI": "sqlite:///appdata.db",
         },
 
         "redis": {
@@ -84,7 +84,7 @@ def welcome():
                " ------------------\n")
     typer.echo("Thank you for using our framework to build your own")
     typer.echo("Flask++ apps! We will try our best to get you ready")
-    typer.echo("within the next two minutes. 💚 Start a timer! 😉\n")
+    typer.echo("within the next two minutes. 💚  Start a timer! 😉\n")
     typer.echo("      " +
                typer.style(
                    "~ GrowVolution 2025 - MIT License ~",
@@ -132,7 +132,7 @@ def setup_app(app_number: int):
             else:
                 input_prompt = f"{key}: "
 
-            val = input(input_prompt).strip()
+            val = sanitize_text(input(input_prompt)).strip()
             if not val:
                 val = str(value)
             config[k][key] = val
@@ -148,9 +148,9 @@ def setup_app(app_number: int):
     ) + "\n")
 
     register_app = prompt_yes_no(typer.style(
-        f"Do you want to register {app} as a service? (y/N): ",
-        fg=typer.colors.MAGENTA, bold=True
-    ) + "\n")
+        f"Do you want to register {app} as a service?",
+        fg=typer.colors.YELLOW, bold=True
+    ) + " (y/N): ")
 
     if register_app:
         from .service_registry import register
