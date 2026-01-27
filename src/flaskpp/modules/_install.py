@@ -3,9 +3,11 @@ from git import Repo, exc
 from importlib import import_module
 import typer, shutil
 
-from flaskpp.modules import module_home
+from flaskpp.modules import module_home, _setup_globals
 
 def install_module(module_id: str, src: str):
+    _setup_globals()
+
     if not src:
         raise NotImplementedError("Module hub is not ready yet.")
 

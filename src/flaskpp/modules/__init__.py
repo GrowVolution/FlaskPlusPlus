@@ -5,7 +5,6 @@ from configparser import ConfigParser
 from typing import TYPE_CHECKING
 import os, typer, json
 
-from flaskpp.cli import cwd
 from flaskpp.module import basic_checked_data, valid_version
 from flaskpp.utils import enabled
 from flaskpp.utils.debugger import log, exception
@@ -15,12 +14,22 @@ if TYPE_CHECKING:
     from flask import Flask
     from flaskpp import FlaskPP
 
-module_home = cwd / "modules"
-conf_path = cwd / "app_configs"
+module_home = None
+conf_path = None
 _modules = {}
 
 
+def _setup_globals():
+    global module_home, conf_path
+
+    from flaskpp.cli import cwd
+    module_home = cwd / "modules"
+    conf_path = cwd / "app_configs"
+
+
 def generate_modlib(app_name: str):
+    _setup_globals()
+
     conf = conf_path / f"{app_name}.conf"
     config = ConfigParser()
     config.optionxform = str

@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Callable, TYPE_CHECKING
 import json, typer, subprocess, sys
 
-from flaskpp.cli import cwd
 from flaskpp.utils import (takes_arg, required_arg_count, require_extensions,
                            enabled, check_required_version)
 from flaskpp.utils.debugger import log
@@ -155,7 +154,7 @@ class Module(Blueprint):
 
             if "modules" in requirements:
                 from flaskpp.modules import installed_modules
-                modules = installed_modules(Path(self.root_path).parent)
+                modules = installed_modules(Path(self.root_path).parent, False)
                 requirement = requirements["modules"]
 
                 if isinstance(requirement, list):
@@ -179,8 +178,8 @@ class Module(Blueprint):
                 fulfilled_modules = []
 
                 for module in modules:
-                    m, v = module
-                    if not m in required_modules:
+                    m, v, _ = module
+                    if not m in required_modules or not enabled(m):
                         continue
                     if check_required_version(requirement[m], "module", v):
                         fulfilled_modules.append(m)
@@ -194,6 +193,7 @@ class Module(Blueprint):
         return module_data
 
     def extract(self):
+        from flaskpp.cli import cwd
         extract_path = self.root_path / "extract"
 
         def for_dir(name):

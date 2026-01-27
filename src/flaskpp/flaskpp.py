@@ -61,6 +61,8 @@ class FlaskPP(Flask):
         limiter.init_app(self)
 
         if enabled("FPP_PROCESSING"):
+            self.context = {}
+            self.context_processor(lambda: self.context)
             set_default_handlers(self)
 
         ext_database = enabled("EXT_SQLALCHEMY")
@@ -98,15 +100,24 @@ class FlaskPP(Flask):
             from flask_security import SQLAlchemyUserDatastore
 
             from flaskpp.app.extensions import security, db
-            from flaskpp.app.data.fst_base import init_mixins, build_user_model, build_role_model
+            from flaskpp.app.data.fst_base import init_mixins, build_user_model, build_role_model, user_roles
+            from flaskpp.app.utils.fst import init_forms, build_login_form, build_register_form
             init_mixins(self)
+            init_forms(self)
+
+            User = build_user_model()
+            Role = build_role_model()
+
+            User.roles = db.relationship(
+                Role, secondary=user_roles,
+                backref=db.backref("users", lazy="dynamic")
+            )
+
             security.init_app(
                 self,
-                SQLAlchemyUserDatastore(
-                    db,
-                    build_user_model(),
-                    build_role_model()
-                )
+                SQLAlchemyUserDatastore(db, User, Role),
+                login_form=build_login_form(),
+                register_form=build_register_form()
             )
 
         if enabled("EXT_AUTHLIB"):

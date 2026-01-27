@@ -793,7 +793,7 @@ from flaskpp.app.extensions import db
     # priority=2
     # -> Like config priority, it should be a value inclusively between 1 and 10 and defaults to 1.
 )
-class MyUserMixin(db.Model):
+class MyUserMixin:
     bio = db.Column(db.String(512))
     # ...
 ```

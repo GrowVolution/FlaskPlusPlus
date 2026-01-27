@@ -1,7 +1,9 @@
 from typing import Callable, TYPE_CHECKING
 
+from flaskpp.utils import safe_string
+
 if TYPE_CHECKING:
-    from flask import Blueprint
+    from flask import Flask, Blueprint
 
 
 class Link:
@@ -35,7 +37,7 @@ class DropdownBuilder:
         self.saved = False
 
     def dropdown_route(
-        self, blueprint: "Blueprint", rule: str,
+        self, target: "Flask | Blueprint", rule: str,
         label: str, priority: int = 1,
         additional_classes: str = "",
         **route_kwargs
@@ -47,12 +49,13 @@ class DropdownBuilder:
         if not priority in self.dropdown_links:
             self.dropdown_links[priority] = []
         self.dropdown_links[priority].append(Link(
-            label, _path(blueprint, rule),
+            label, _path(target, rule),
             additional_classes
         ))
 
         def decorator(func):
-            blueprint.add_url_rule(rule, view_func=func, **route_kwargs)
+            endpoint = safe_string(rule.strip("/"))
+            target.add_url_rule(rule, endpoint=endpoint, view_func=func, **route_kwargs)
             return func
 
         return decorator
@@ -81,13 +84,13 @@ def _check(priority: int):
     check_priority(priority)
 
 
-def _path(bp: "Blueprint", rule: str) -> str:
-    prefix = bp.url_prefix or ""
+def _path(t: "Flask | Blueprint", rule: str) -> str:
+    prefix = t.url_prefix or ""
     return f"{prefix}{rule}"
 
 
 def autonav_route(
-    blueprint: "Blueprint", rule: str,
+    target: "Flask | Blueprint", rule: str,
     label: str, priority: int = 1,
     additional_classes: str = "",
     **route_kwargs
@@ -97,12 +100,13 @@ def autonav_route(
     if not priority in _nav_links:
         _nav_links[priority] = []
     _nav_links[priority].append(Link(
-        label, _path(blueprint, rule),
+        label, _path(target, rule),
         additional_classes
     ))
 
     def decorator(func):
-        blueprint.add_url_rule(rule, view_func=func, **route_kwargs)
+        endpoint = safe_string(rule.strip("/"))
+        target.add_url_rule(rule, endpoint=endpoint, view_func=func, **route_kwargs)
         return func
 
     return decorator

@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from flask import Flask
     from werkzeug.datastructures import ImmutableDict
     from flaskpp import FlaskPP, Module
+    from flaskpp.i18n import DBDomain
 
 
 class FppBabel(Babel):
@@ -20,7 +21,7 @@ class FppBabel(Babel):
 
     def init_app(self, app: "FlaskPP | Flask", default_locale: str = None,
                  default_timezone: str = None, date_formats: "ImmutableDict[str, str | None]" = None,
-                 configure_jinja: bool = True, default_domain: str = None):
+                 configure_jinja: bool = True, default_domain: "DBDomain" = None):
         if default_domain is None:
             from flaskpp.i18n import DBDomain
             default_domain = DBDomain()
@@ -36,7 +37,7 @@ class FppBabel(Babel):
             app.config.setdefault('BABEL_DEFAULT_TIMEZONE', default_timezone)
 
         app.config.setdefault('BABEL_CONFIGURE_JINJA', configure_jinja)
-        app.config.setdefault('BABEL_DOMAIN', default_domain)
+        app.config.setdefault('BABEL_DOMAIN', default_domain.domain)
 
         app.extensions['babel'] = _FppBabelState(
             babel=self, app=app, domain=default_domain
@@ -66,7 +67,7 @@ class FppBabel(Babel):
 
 
 class _FppBabelState(object):
-    def __init__(self, babel: FppBabel, app: "FlaskPP | Flask", domain: str):
+    def __init__(self, babel: FppBabel, app: "FlaskPP | Flask", domain: "DBDomain"):
         self.babel = babel
         self.app = app
         self.domain = domain
