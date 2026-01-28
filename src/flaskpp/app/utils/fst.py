@@ -1,6 +1,8 @@
 from pathlib import Path
 from importlib import import_module
 from flask_security.forms import LoginForm, RegisterFormV2
+from flask_mailman import EmailMessage
+from threading import Thread
 from typing import Callable, TYPE_CHECKING
 
 from flaskpp.modules import installed_modules
@@ -11,9 +13,6 @@ if TYPE_CHECKING:
 
 _login_forms: dict[int, list[type]] = {}
 _register_forms: dict[int, list[type]] = {}
-
-
-class FormMeta(type): pass
 
 
 def init_forms(app: "FlaskPP"):
@@ -28,7 +27,7 @@ def init_forms(app: "FlaskPP"):
             continue
 
         try:
-            import_module(f"modules.{p}.config")
+            import_module(f"modules.{p}.forms")
         except ModuleNotFoundError:
             pass
 
@@ -39,10 +38,6 @@ def login_form(priority: int = 1) -> Callable:
     def decorator(cls):
         if not priority in _login_forms:
             _login_forms[priority] = []
-
-        if not isinstance(type(cls), FormMeta):
-            cls = FormMeta(cls.__name__, cls.__bases__, dict(cls.__dict__))
-
         _login_forms[priority].append(cls)
         return cls
 
@@ -55,41 +50,41 @@ def register_form(priority: int = 1) -> Callable:
     def decorator(cls):
         if not priority in _register_forms:
             _register_forms[priority] = []
-
-        if not isinstance(type(cls), FormMeta):
-            cls = FormMeta(cls.__name__, cls.__bases__, dict(cls.__dict__))
-
         _register_forms[priority].append(cls)
         return cls
 
     return decorator
 
 
-def build_login_form() -> FormMeta:
-    cls = LoginForm
-    default_conf = FormMeta(cls.__name__, cls.__bases__, dict(cls.__dict__))
-
+def build_login_form() -> type:
     bases = tuple()
     for configs in build_sorted_tuple(_login_forms):
         bases += tuple(configs)
 
-    return FormMeta(
+    return type(
         "ExtendedLoginForm",
-        bases + (default_conf, ),
+        bases + (LoginForm, ),
         {}
     )
 
 
-def build_register_form() -> FormMeta:
-    cls = RegisterFormV2
-    default_conf = FormMeta(cls.__name__, cls.__bases__, dict(cls.__dict__))
-
+def build_register_form() -> type:
     bases = tuple()
     for configs in build_sorted_tuple(_register_forms):
         bases += tuple(configs)
 
-    return FormMeta(
+    return type(
         "ExtendedRegisterForm",
-        bases + (default_conf, ),
+        bases + (RegisterFormV2, ),
         {}
     )
+
+
+def send_security_mail(msg: dict):
+    message = EmailMessage(
+        subject=msg["subject"],
+        body=msg["body"],
+        from_email=msg["sender"],
+        to=[msg["recipient"]],
+    )
+    Thread(target=message.send).start()

@@ -40,9 +40,9 @@ def base_config():
 
         "mail": {
             "MAIL_SERVER": "",
-            "default_MAIL_PORT": 25,
-            "default_MAIL_USE_TLS": True,
-            "default_MAIL_USE_SSL": False,
+            "default_MAIL_PORT": 587,
+            "default_MAIL_USE_TLS": 1,
+            "MAIL_USE_SSL": "",
             "MAIL_USERNAME": "",
             "MAIL_PASSWORD": "",
             "default_MAIL_DEFAULT_SENDER": "noreply@example.com",
@@ -80,8 +80,10 @@ def base_config():
 
 def setup_config(config: ConfigParser, base: dict, config_file_exists: bool = False) -> ConfigParser:
     for k, v in base.items():
+        print_key = False
+
         if k not in config:
-            typer.echo(typer.style(f"\n{k.upper()}", bold=True))
+            print_key = True
             config[k] = {}
 
         for key, value in v.items():
@@ -90,6 +92,10 @@ def setup_config(config: ConfigParser, base: dict, config_file_exists: bool = Fa
                 if not (config_file_exists and config[k].get(key)):
                     config[k][key] = str(value)
                 continue
+
+            if print_key:
+                typer.echo(typer.style(f"\n{k.upper()}", bold=True))
+                print_key = False
 
             if key.startswith("default_"):
                 key = key.removeprefix("default_")
@@ -144,7 +150,7 @@ def setup_app(app_number: int):
     typer.echo(typer.style("Okay, let's setup your app config.\n", fg=typer.colors.YELLOW, bold=True) +
                typer.style("Leave blank to stick with the defaults.", fg=typer.colors.MAGENTA))
 
-    setup_config(config, base_config(), conf_exists)
+    config = setup_config(config, base_config(), conf_exists)
 
     with open(conf, "w") as f:
         config.write(f)

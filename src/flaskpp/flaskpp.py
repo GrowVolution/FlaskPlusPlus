@@ -100,24 +100,19 @@ class FlaskPP(Flask):
             from flask_security import SQLAlchemyUserDatastore
 
             from flaskpp.app.extensions import security, db
-            from flaskpp.app.data.fst_base import init_mixins, build_user_model, build_role_model, user_roles
-            from flaskpp.app.utils.fst import init_forms, build_login_form, build_register_form
+            from flaskpp.app.data.fst_base import init_mixins, build_user_model, build_role_model
+            from flaskpp.app.utils.fst import init_forms, build_login_form, build_register_form, send_security_mail
             init_mixins(self)
             init_forms(self)
 
-            User = build_user_model()
-            Role = build_role_model()
-
-            User.roles = db.relationship(
-                Role, secondary=user_roles,
-                backref=db.backref("users", lazy="dynamic")
-            )
-
             security.init_app(
                 self,
-                SQLAlchemyUserDatastore(db, User, Role),
+                SQLAlchemyUserDatastore(
+                    db, build_user_model(), build_role_model()
+                ),
                 login_form=build_login_form(),
-                register_form=build_register_form()
+                register_form=build_register_form(),
+                send_mail=send_security_mail,
             )
 
         if enabled("EXT_AUTHLIB"):

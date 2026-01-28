@@ -1,7 +1,5 @@
 from typing import Callable, TYPE_CHECKING
 
-from flaskpp.utils import safe_string
-
 if TYPE_CHECKING:
     from flask import Flask, Blueprint
 
@@ -54,8 +52,7 @@ class DropdownBuilder:
         ))
 
         def decorator(func):
-            endpoint = safe_string(rule.strip("/"))
-            target.add_url_rule(rule, endpoint=endpoint, view_func=func, **route_kwargs)
+            target.add_url_rule(rule, view_func=func, **route_kwargs)
             return func
 
         return decorator
@@ -105,8 +102,7 @@ def autonav_route(
     ))
 
     def decorator(func):
-        endpoint = safe_string(rule.strip("/"))
-        target.add_url_rule(rule, endpoint=endpoint, view_func=func, **route_kwargs)
+        target.add_url_rule(rule, view_func=func, **route_kwargs)
         return func
 
     return decorator

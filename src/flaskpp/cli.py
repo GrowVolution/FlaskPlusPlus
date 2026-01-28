@@ -1,6 +1,6 @@
 from importlib.metadata import version
 from pathlib import Path
-import typer
+import typer, sys
 
 from flaskpp._help import help_message
 from flaskpp._init import initialize
@@ -63,6 +63,7 @@ def main():
     node_entry(app)
     tailwind_entry(app)
 
+    sys.path.append(cwd.as_posix())
     app()
 
 

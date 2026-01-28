@@ -79,15 +79,8 @@ def build_role_model() -> type:
 
     return type(
         "Role",
-        bases + (db.Model, fsqla.FsRoleMixin),
+        bases + (db.Model, fsqla.FsRoleMixinV2),
         {}
     )
-
-
-user_roles = db.Table(
-    "user_roles",
-    db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
-    db.Column("role_id", db.Integer, db.ForeignKey("role.id"), primary_key=True)
-)
 
 fsqla.FsModels.set_db_info(db)

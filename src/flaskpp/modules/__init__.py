@@ -51,11 +51,11 @@ def generate_modlib(app_name: str):
             val = "0"
         config["modules"][mod_id] = val
 
-        if enabled(val):
+        if val.lower() in ("1", "y", "yes"):
             from flaskpp.utils.setup import setup_config
             try:
-                conf = import_module(f"modules.{module[2]}.config")
-                module_config = getattr(conf, "module_config", None)
+                cfg = import_module(f"modules.{module[2]}.config")
+                module_config = getattr(cfg, "module_config", None)
                 if not module_config:
                     raise ImportError()
 
@@ -66,9 +66,9 @@ def generate_modlib(app_name: str):
                 base = {
                     mod_id: base_config
                 }
-                setup_config(config, base, conf_exists)
+                config = setup_config(config, base, conf_exists)
                 typer.echo("\n")
-            except (ModuleNotFoundError, ImportError, TypeError):
+            except (ModuleNotFoundError, ImportError, TypeError) as e:
                 pass
 
     set_home = input(

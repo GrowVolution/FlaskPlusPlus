@@ -104,12 +104,16 @@ class Module(Blueprint):
             self.frontend_engine = engine
             app.on_shutdown(engine.shutdown)
 
+        mod_tailwind = lambda: Markup(f"<link rel='stylesheet' href='{
+        self.url_for('static', filename='css/tailwind.css')
+        }'>")
         self.context_processor(lambda: dict(
             **self.context,
-            tailwind=Markup(f"<link rel='stylesheet' href='{
-                self.url_for('static', filename='css/tailwind.css')
-            }'>")
+            tailwind=mod_tailwind()
         ))
+
+        if enabled("FPP_PROCESSING"):
+            app.context[f"{self.name}_tailwind"] = mod_tailwind
 
         if self._on_enable is not None:
             self._on_enable(app)
@@ -194,7 +198,7 @@ class Module(Blueprint):
 
     def extract(self):
         from flaskpp.cli import cwd
-        extract_path = self.root_path / "extract"
+        extract_path = Path(self.root_path) / "extract"
 
         def for_dir(name):
             for file in (extract_path / name).rglob("*"):
@@ -210,6 +214,8 @@ class Module(Blueprint):
                          "File already exists.", fg=typer.colors.YELLOW, bold=True
                     ))
                     continue
+
+                typer.echo(f"Extracting '{'/'.join(rel.parts)}' from module '{self.module_name}'.")
 
                 dst.write_bytes(
                     file.read_bytes()
