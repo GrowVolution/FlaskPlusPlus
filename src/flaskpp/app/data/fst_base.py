@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Callable, TYPE_CHECKING
 import inspect
 
-from flaskpp.utils import check_priority, build_sorted_tuple
+from flaskpp.utils import check_priority, build_sorted_tuple, enabled
 from flaskpp.app.extensions import db
 
 if TYPE_CHECKING:
@@ -83,4 +83,5 @@ def build_role_model() -> type:
         {}
     )
 
-fsqla.FsModels.set_db_info(db)
+if enabled("EXT_FST"):
+    fsqla.FsModels.set_db_info(db)

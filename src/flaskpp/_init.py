@@ -15,6 +15,9 @@ def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_
         from flaskpp.utils.setup import conf_path
         conf_path.mkdir(exist_ok=True)
 
+        from flaskpp.modules import setup_globals
+        setup_globals()
+
         from flaskpp.modules import module_home
         module_home.mkdir(exist_ok=True)
 
@@ -33,10 +36,16 @@ def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_
         with open(cwd / "main.py", "w") as f:
             f.write("""
 from flaskpp import FlaskPP
+from flask import render_template
             
 def create_app():
     app = FlaskPP(__name__)
-
+    
+    app.add_url_rule(
+        "/", endpoint="index",
+        view_func=lambda: render_template("index.html")
+    )
+    
     # TODO: Extend the Flask++ default setup with your own factory
 
     return app

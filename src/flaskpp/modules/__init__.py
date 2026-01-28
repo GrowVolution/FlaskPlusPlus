@@ -19,7 +19,7 @@ conf_path = None
 _modules = {}
 
 
-def _setup_globals():
+def setup_globals():
     global module_home, conf_path
 
     from flaskpp.cli import cwd
@@ -28,7 +28,7 @@ def _setup_globals():
 
 
 def generate_modlib(app_name: str):
-    _setup_globals()
+    setup_globals()
 
     conf = conf_path / f"{app_name}.conf"
     config = ConfigParser()

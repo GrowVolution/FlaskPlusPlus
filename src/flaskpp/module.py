@@ -104,9 +104,9 @@ class Module(Blueprint):
             self.frontend_engine = engine
             app.on_shutdown(engine.shutdown)
 
-        mod_tailwind = lambda: Markup(f"<link rel='stylesheet' href='{
-        self.url_for('static', filename='css/tailwind.css')
-        }'>")
+        mod_tailwind = lambda: Markup(
+            f"<link rel='stylesheet' href='{self.url_for('static', filename='css/tailwind.css')}'>"
+        )
         self.context_processor(lambda: dict(
             **self.context,
             tailwind=mod_tailwind()

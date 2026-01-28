@@ -136,7 +136,9 @@ class FlaskPP(Flask):
 
         if enabled("EXT_API"):
             from flaskpp.app.extensions import api
-            api.init_app(self)
+            api.init_app(
+                self, prefix=f"/api/{self.config.get('API_VERSION', 'v1')}"
+            )
 
         if enabled("EXT_JWT_EXTENDED"):
             from flaskpp.app.extensions import jwt

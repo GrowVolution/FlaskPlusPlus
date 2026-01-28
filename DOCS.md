@@ -281,6 +281,8 @@ A fully qualified manifest file would then look like this:
     "packages": [               // PyPI packages that are required by your module
       // e.g. "numpy", "pandas",
       // ...
+      
+      // packages will be installed when your module gets installed
     ],
     "modules": {                // other modules that are required by your module
       "module_id_01": "==0.2",
@@ -456,7 +458,7 @@ def init_models(mod: Module):
 
 #### Extracting
 
-The Module class provides a `module.extract()` function. This function is meant to be used by the Flask++ CLI to extract the modules globals to the app's static / templates when the module gets installed. This is especially useful if your module needs to install global templates if it is not meant to be installed as a home module. To use this feature, you need to create an **extract** folder containing a **templates** and/or **static** folder inside your module package. Their contents will then be extracted to the app's static and templates folder.
+The Module class provides a `module.extract()` function. This function is meant to be used by the `fpp modules install` command to extract the modules globals to the app's static / templates when the module gets installed. This is especially useful if your module needs to install global templates if it is not meant to be installed as a home module. To use this feature, you need to create an **extract** folder containing a **templates** and/or **static** folder inside your module package. Their contents will then be extracted to the app's static and templates folder.
 
 ### Working with Modules
 
@@ -794,7 +796,25 @@ from flaskpp.app.extensions import db
     # -> Like config priority, it should be a value inclusively between 1 and 10 and defaults to 1.
 )
 class MyUserMixin:
+    full_name = db.Column(db.String(64), nullable=False)
     bio = db.Column(db.String(512))
+    # ...
+```
+
+You can also create your own forms for FST. For that simply create a **forms.py** file inside your module package. If EXT_FST is set to 1, the FlaskPP class will load it automatically and like with the FST mixins create a combined form class that is passed to the `security.init_app()` function. So you can plug in FST forms like that:
+
+```python
+# module_package/forms.py
+from flaskpp.app.utils.fst import register_form     #, login_form
+from flaskpp.app.utils.translating import t         # this function is a promise that exists as dummy if EXT_BABEL = 0
+from wtforms import StringField, validators
+
+@register_form(
+    # priority=2
+    # -> you know the concept :)
+)
+class MyRegisterForm:
+    full_name = StringField(t("FULL_NAME_LABEL"), validators=validators.DataRequired())
     # ...
 ```
 

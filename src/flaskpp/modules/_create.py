@@ -2,12 +2,12 @@ import json, typer, shutil
 
 from flaskpp.flaskpp import version
 from flaskpp.module import version_check
-from flaskpp.modules import creator_templates, module_home, _setup_globals
+from flaskpp.modules import creator_templates, module_home, setup_globals
 from flaskpp.utils import prompt_yes_no, sanitize_text, safe_string
 
 
 def create_module(module_name: str):
-    _setup_globals()
+    setup_globals()
 
     tmp_id = safe_string(module_name).lower()
     mod_id = sanitize_text(input(f"Enter your module id ({tmp_id}): "))
@@ -34,7 +34,7 @@ def create_module(module_name: str):
         "version": sanitize_text(input("Enter the version of your module [required]: ")),
         "author": sanitize_text(input("Enter your name or nickname: ")),
         "requires": {
-            "fpp": f">={str(version()).strip("v")}",
+            "fpp": f">={str(version()).strip('v')}",
             "packages": [],
             "modules": {}
         }
