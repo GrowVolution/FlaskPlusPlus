@@ -1,14 +1,22 @@
 from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from flask import Flask, Blueprint
+    from flaskpp import FlaskPP, Module
 
 
 class Link:
-    def __init__(self, label: str, href: str, additional_classes: str = ""):
+    def __init__(self, label: str, href: str, additional_classes: str = "",
+                 target: "Module" = None):
         self.label = label
-        self.href = href
+        self._href = href
         self.classes = additional_classes
+        self.target = target
+
+    @property
+    def href(self):
+        if self.target and not self.target.ref.home:
+            return f"{self.target.ref.url_prefix}{self._href}"
+        return self._href
 
 
 class Dropdown:
@@ -35,7 +43,7 @@ class DropdownBuilder:
         self.saved = False
 
     def dropdown_route(
-        self, target: "Flask | Blueprint", rule: str,
+        self, target: "FlaskPP | Module", rule: str,
         label: str, priority: int = 1,
         additional_classes: str = "",
         **route_kwargs
@@ -48,7 +56,8 @@ class DropdownBuilder:
             self.dropdown_links[priority] = []
         self.dropdown_links[priority].append(Link(
             label, _path(target, rule),
-            additional_classes
+            additional_classes,
+            target if getattr(target, "is_base", False) else None
         ))
 
         def decorator(func):
@@ -81,13 +90,13 @@ def _check(priority: int):
     check_priority(priority)
 
 
-def _path(t: "Flask | Blueprint", rule: str) -> str:
+def _path(t: "FlaskPP | Module", rule: str) -> str:
     prefix = t.url_prefix or ""
     return f"{prefix}{rule}"
 
 
 def autonav_route(
-    target: "Flask | Blueprint", rule: str,
+    target: "FlaskPP | Module", rule: str,
     label: str, priority: int = 1,
     additional_classes: str = "",
     **route_kwargs
@@ -98,7 +107,8 @@ def autonav_route(
         _nav_links[priority] = []
     _nav_links[priority].append(Link(
         label, _path(target, rule),
-        additional_classes
+        additional_classes,
+        target if getattr(target, "is_base", False) else None
     ))
 
     def decorator(func):

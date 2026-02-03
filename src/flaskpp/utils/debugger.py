@@ -1,6 +1,7 @@
 from datetime import datetime
 import traceback, sys
 
+_execution = False
 _debug = False
 
 
@@ -16,7 +17,10 @@ def get_time() -> str:
 
 
 def log(category: str, message: str):
-    log_str = f"[FLASK]\t[{get_time()}] [{category.upper()}] {message}"
+    if not _execution:
+        return
+
+    log_str = f"[FLASK]\t[{get_time()}] [{category.upper()}]\t{message}"
     print(log_str)
 
 
@@ -35,7 +39,14 @@ def debug_msg(message: str):
 
 
 def start_session(debug: bool):
+    global _execution
+    from flaskpp.utils import enabled
+    _execution = enabled("IN_EXECUTION")
+    if not _execution:
+        return
+
     global _debug
     _debug = debug
+
     log("info", "Flask plug & play module server running.")
     log("info", f"Loglevel {'debug' if debug else 'info'}.")

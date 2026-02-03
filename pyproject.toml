@@ -1,6 +1,6 @@
 [project]
 name = "flaskpp"
-version = "0.4.7"
+version = "0.4.8"
 description = "A Flask based framework for fast and easy app creation. Experience the real power of Flask without boilerplate, but therefore a well balanced mix of magic and the default Flask framework."
 authors = [
     { name = "Pierre", email = "pierre@growv-mail.org" }
@@ -28,6 +28,7 @@ dependencies = [
     "authlib",
     "uvicorn",
     "asgiref",
+    "immutables",
     "requests",
     "redis",
     "pytz",

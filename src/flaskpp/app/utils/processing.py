@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, url_for, Response
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import Forbidden, NotFound
 from markupsafe import Markup
 from typing import Callable
 
@@ -55,12 +55,15 @@ def handle_app_error(fn: Callable) -> Callable:
     return fn
 
 def _handle_app_error(error: Exception):
+    if isinstance(error, Forbidden):
+        return render_template("403.html"), 403
+
     if isinstance(error, NotFound):
         return render_template("404.html"), 404
 
     eid = random_code()
     exception(error, f"Handling app request failed ({eid}).")
-    return render_template("error.html"), 501
+    return render_template("501.html"), 501
 
 
 def get_handler(name: str) -> Callable:

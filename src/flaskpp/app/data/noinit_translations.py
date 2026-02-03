@@ -1,7 +1,7 @@
 import json
 
-from flaskpp.app.data import commit, _package
-from flaskpp.app.data.babel import add_entry, get_entries, get_entry
+from flaskpp.app.data import commit, _package, delete_model
+from flaskpp.app.data.babel import add_entry, get_entries
 from flaskpp.babel import valid_state
 from flaskpp.utils import enabled
 from flaskpp.utils.debugger import log
@@ -20,6 +20,8 @@ _msg_keys = [
     "NO",
     "HINT",
     "UNDERSTOOD",
+    "FORBIDDEN_TITLE",
+    "FORBIDDEN_MSG",
 
 ]
 
@@ -36,6 +38,8 @@ _translations_en = {
     _msg_keys[9]: "No",
     _msg_keys[10]: "Hint",
     _msg_keys[11]: "Understood",
+    _msg_keys[12]: "Access Denied",
+    _msg_keys[13]: "You are not authorized to access this page.",
 
 }
 
@@ -52,6 +56,8 @@ _translations_de = {
     _msg_keys[9]: "Nein",
     _msg_keys[10]: "Hinweis",
     _msg_keys[11]: "Verstanden",
+    _msg_keys[12]: "Zugriff Verweigert",
+    _msg_keys[13]: "Du bist nicht berechtigt auf diese Seite zuzugreifen."
 
 }
 
@@ -77,12 +83,15 @@ def setup_db(domain: str = "flaskpp"):
             if key not in keys:
                 _add_entries(key, domain)
 
+        from .. import data
         for entry in entries:
             key = entry.key
-            if _translations_en[key] != entry.text:
-                entry.text = _translations_en[key]
-                entry_de = get_entry(key, "de", domain)
-                entry_de.text = _translations_de[key]
+            translations = getattr(data.noinit_translations, f"_translations_{entry.locale}", _translations_en)
+            try:
+                if translations[key] != entry.text:
+                    entry.text = translations[key]
+            except KeyError:
+                delete_model(entry, False)
     else:
         log("info", f"Setting up Flask++ translations...")
 
@@ -100,7 +109,9 @@ def get_locale_data(locale: str) -> tuple[str, str]:
         locale = locale.split("_")[0]
 
     try:
-        locale_data = json.loads((_package / "locales.json").read_text())
+        locale_data = json.loads(
+            (_package / "locales.json").read_text(encoding="utf-8")
+        )
     except json.JSONDecodeError:
         raise I18nError("Failed to parse locales.json")
 

@@ -7,8 +7,6 @@
     <link rel="icon" href="{{ url_for('fpp_default.static', filename='img/favicon.png') }}" type="image/png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css" />
 
-    {{ fpp_tailwind }}
-
     <title>{% block title %}Flask++ App{% endblock %}</title>
 
     {% if enabled("EXT_SOCKET") %}
@@ -28,6 +26,8 @@
     {% if enabled("EXT_BABEL") and DOMAIN %}
         <meta name="i18n:domain" content="{{ DOMAIN }}">
     {% endif %}
+
+    {{ fpp_tailwind }}
 
     {% block head %}{% endblock %}
 </head>

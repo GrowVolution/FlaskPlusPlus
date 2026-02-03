@@ -1,4 +1,4 @@
-# Flask++ v0.3.x Documentation
+# Flask++ v0.4.x Documentation
 
 ## Core
 
@@ -304,9 +304,9 @@ from flaskpp.exceptions import ModuleError
 module = Module(
     __file__,
     __name__,
-    
-    # Optional a list of required_extensions:
-    [
+    # extends=YourBaseModule,
+    # -> You can use base modules as extensions for your module.
+    # required_extensions=[
     #    "sqlalchemy",
     #    "socket",
     #    "babel",
@@ -316,10 +316,18 @@ module = Module(
     #    "cache",
     #    "api",
     #    "jwt_extended"
-    ],
-    # init_routes_on_enable=False
+    # ],
+    # -> You can set Flask++'s pre-wired extensions as required.
+    # init_routes_on_enable=False, 
     # -> You can optionally turn off automated route initialization when the module gets enabled.
     # This could be especially useful, if you are working with socket i18n. (More in the later chapters.)
+    # allowed_for_home=False,
+    # -> You can disable the ability for your module to be the home module of the app.
+    # allow_frontend_engine=False,
+    # -> You can disable the frontend engine of your module if FRONTEND_ENGINE is set to 1.
+    # is_base=True
+    # -> You can set the module as a base module that can be used to extend other modules.
+    # Base modules are not allowed to be registered. Do not enable them in your app config.
 )
 
 # Now if you need to do stuff when your module gets enabled:
@@ -694,8 +702,8 @@ def example():
 And here is an example of what your **module_package/data/noinit_translations.py** file could look like:
 
 ```python
-from flaskpp.app.data import commit
-from flaskpp.app.data.babel import add_entry, get_entries, get_entry
+from flaskpp.app.data import commit, delete_model
+from flaskpp.app.data.babel import add_entry, get_entries
 
 _msg_keys = [
     "EXAMPLE_TITLE",
@@ -726,12 +734,15 @@ def setup_db(mod: Module):
             if key not in keys:
                 _add_entries(key, domain)
 
+        from .. import data
         for entry in entries:
             key = entry.key
-            if _translations_en[key] != entry.text:
-                entry.text = _translations_en[key]
-                entry_de = get_entry(key, "de", domain)
-                entry_de.text = _translations_de[key]
+            translations = getattr(data.noinit_translations, f"_translations_{entry.locale}", _translations_en)
+            try:
+                if translations[key] != entry.text:
+                    entry.text = translations[key]
+            except KeyError:
+                delete_model(entry, False)
     else:
         for key in _msg_keys:
             _add_entries(key, domain)

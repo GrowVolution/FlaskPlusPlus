@@ -34,16 +34,15 @@ def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_
         (static / "js").mkdir(exist_ok=True)
         (static / "img").mkdir(exist_ok=True)
         with open(cwd / "main.py", "w") as f:
-            f.write("""
-from flaskpp import FlaskPP
+            f.write("""from flaskpp import FlaskPP
 from flask import render_template
             
 def create_app():
     app = FlaskPP(__name__)
     
-    app.add_url_rule(
+    app.add_app_url_rule(
         "/", endpoint="index",
-        view_func=lambda: render_template("index.html")
+        view_func=lambda: render_template("app/index.html")
     )
     
     # TODO: Extend the Flask++ default setup with your own factory
@@ -52,27 +51,23 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.start()
-            """)
+    app.start()""")
 
-        (templates / "index.html").write_text("""
-{% extends "base_example.html" %}
+        (templates / "index.html").write_text("""{% extends "base_example.html" %}
 {# The base template is natively provided by Flask++. #}
 
 {% block title %}{{ _('Home') }}{% endblock %}
-{% block content %}
-    <div class="text-center">
-        <h2>{{ _('My new Flask++ Project') }}</h2>
-        <p>
-            {{ _('This is my brand new, super cool project.') }}
-            
-        </p>
-    </div>
-{% endblock %}
-        """)
 
-        (css / "tailwind_raw.css").write_text("""
-@import "tailwindcss" source("../../");
+{% block head %}{{ tailwind_main }}{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
+        <h2 class="text-2xl font-semibold">{{ _('My new Flask++ Project') }}</h2>
+        <p class="mt-2">{{ _('This is my brand new, super cool project.') }}</p>
+    </div>
+{% endblock %}""")
+
+        (css / "tailwind_raw.css").write_text("""@import "tailwindcss" source("../../");
 
 @source not "../../.venv";
 @source not "../../venv";
@@ -82,11 +77,9 @@ if __name__ == "__main__":
 
 @theme {
     /* ... */
-}
-        """)
+}""")
 
-        (cwd / ".gitignore").write_text("""
-[folders]
+        (cwd / ".gitignore").write_text("""[folders]
 __pycache__/
 app_configs/
 services/
@@ -99,8 +92,7 @@ logs/
 
 [files]
 messages.pot
-tailwind.css
-""")
+tailwind.css""")
 
     if not skip_babel:
         typer.echo(typer.style("Generating default translations...", bold=True))

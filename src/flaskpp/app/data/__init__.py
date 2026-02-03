@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 import os
 
+from flaskpp.modules import installed_modules
+from flaskpp.utils import enabled
 from flaskpp.utils.debugger import log
 
 if TYPE_CHECKING:
@@ -14,11 +16,28 @@ if TYPE_CHECKING:
 _package = Path(__file__).parent
 
 
-def init_models():
+def init_models(app: "FlaskPP"):
     for file in _package.rglob("*.py"):
         if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
         import_module(f"flaskpp.app.data.{file.stem}")
+
+    modules = Path(app.root_path) / "modules"
+    if not modules.exists() or not modules.is_dir():
+        return
+
+    for module_info in installed_modules(modules, False):
+        m, _, p = module_info
+        if not enabled(m):
+            continue
+
+        try:
+            mod = import_module(f"modules.{p}")
+            module = getattr(mod, "module", None)
+            if module and not module.is_base:
+                module.init_models()
+        except ModuleNotFoundError:
+            pass
 
 
 def commit():

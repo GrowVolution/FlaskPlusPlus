@@ -3,10 +3,10 @@ from git import Repo, exc
 from importlib import import_module
 import typer, shutil
 
-from flaskpp.modules import module_home, setup_globals
+from flaskpp.modules import setup_globals
 
 def install_module(module_id: str, src: str):
-    setup_globals()
+    module_home, _ = setup_globals()
 
     if not src:
         raise NotImplementedError("Module hub is not ready yet.")
@@ -18,7 +18,7 @@ def install_module(module_id: str, src: str):
 
             from flaskpp import Module
             if not isinstance(module, Module):
-                raise ImportError("Failed to load 'module: Module'.")
+                raise ImportError("Failed to import 'module: Module'.")
 
             module.extract()
             module.install_packages()

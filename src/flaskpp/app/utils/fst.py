@@ -21,8 +21,8 @@ def init_forms(app: "FlaskPP"):
     if not modules.exists() or not modules.is_dir():
         return
 
-    for module in installed_modules(modules, False):
-        m, _, p = module
+    for module_info in installed_modules(modules, False):
+        m, _, p = module_info
         if not enabled(m):
             continue
 

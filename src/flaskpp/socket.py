@@ -2,6 +2,7 @@ from socketio import AsyncServer
 from werkzeug.http import parse_accept_header
 from werkzeug.datastructures import LanguageAccept
 from contextvars import ContextVar
+from immutables import Map
 from http.cookies import SimpleCookie
 from typing import Callable, Any, TYPE_CHECKING
 
@@ -13,9 +14,10 @@ if TYPE_CHECKING:
 
 
 class _EventContext:
-    def __init__(self, ctx: ContextVar, session: dict):
+    def __init__(self, ctx: ContextVar, session: dict, namespace: str):
         self.ctx = ctx
-        self.session = session
+        self.session = Map(session)
+        self.namespace = namespace
 
     def __enter__(self):
         self.token = self.ctx.set(self)
@@ -46,8 +48,8 @@ class FppSocket(AsyncServer):
         if app is not None:
             self.init_app(app)
 
-    def _event_context(self, session: dict) -> _EventContext:
-        return _EventContext(self._context, session)
+    def _event_context(self, session: dict, namespace: str) -> _EventContext:
+        return _EventContext(self._context, session, namespace)
 
     async def _on_connect(self, sid: str, environ: dict):
         if self.app is None:
@@ -130,8 +132,7 @@ class FppSocket(AsyncServer):
                     sid, payload = args
 
                 async with self.session(sid) as s:
-                    s["__namespace__"] = ns
-                    with self._event_context(s):
+                    with self._event_context(s, ns):
                         try:
                             result = fn(sid, payload) if pass_sid else fn(payload)
                             result = await async_result(result)
@@ -255,10 +256,18 @@ class FppSocket(AsyncServer):
         return self._context.get()
 
     @property
-    def current_session(self) -> dict | None:
+    def current_session(self) -> Map | None:
         try:
             ctx = self.event_context
             return ctx.session if ctx else None
+        except LookupError:
+            return None
+
+    @property
+    def current_namespace(self) -> str | None:
+        try:
+            ctx = self.event_context
+            return ctx.namespace if ctx else None
         except LookupError:
             return None
 

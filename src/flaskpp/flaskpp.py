@@ -1,11 +1,12 @@
 from flask import Flask, Blueprint, send_from_directory
+from flask.sansio.scaffold import T_route
 from werkzeug.middleware.proxy_fix import ProxyFix
 from threading import Thread, Event
 from asgiref.wsgi import WsgiToAsgi
 from socketio import ASGIApp
 from pathlib import Path
 from importlib.metadata import version as _version
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, Any, TYPE_CHECKING
 import os, signal
 
 from flaskpp.i18n import init_i18n
@@ -13,6 +14,7 @@ from flaskpp.tailwind import generate_tailwind_css
 from flaskpp.modules import register_modules
 from flaskpp.utils import enabled, required_arg_count, safe_string
 from flaskpp.utils.debugger import start_session, log
+from flaskpp.app import App
 from flaskpp.app.config import init_configs, build_config
 from flaskpp.app.data import db_autoupdate
 from flaskpp.app.utils.processing import set_default_handlers
@@ -31,11 +33,12 @@ class FppVersion(tuple):
 
 
 class FlaskPP(Flask):
-    def __init__(self, import_name: str):
+    def __init__(self, import_name: str, allow_frontend_engine: bool = True, **kwargs):
         super().__init__(
             import_name,
             static_folder=None,
-            static_url_path=None
+            static_url_path=None,
+            **kwargs
         )
         self.name = safe_string(os.getenv("APP_NAME", self.import_name)).lower()
 
@@ -72,7 +75,7 @@ class FlaskPP(Flask):
             from flaskpp.app.data import init_models
             db.init_app(self)
             migrate.init_app(self, db)
-            init_models()
+            init_models(self)
 
             if enabled("DB_AUTOUPDATE"):
                 db_updater = Thread(target=db_autoupdate, args=(self,))
@@ -88,7 +91,10 @@ class FlaskPP(Flask):
             from flaskpp.app.extensions import babel
             from flaskpp.app.utils.translating import set_locale
             babel.init_app(self)
-            self.route("/lang/<locale>")(set_locale)
+            self.add_url_rule(
+                "/lang/<locale>",
+                view_func=set_locale
+            )
 
             if enabled("FPP_I18N_FALLBACK") and ext_database:
                 from flaskpp.app.data.noinit_translations import setup_db
@@ -152,9 +158,11 @@ class FlaskPP(Flask):
         if db_updater:
             db_updater.start()
 
+        self._app = App(import_name)
         self._asgi_app = None
         self._server = Thread(target=self._run_server, daemon=True)
         self._shutdown_flag = Event()
+        self._allow_vite = allow_frontend_engine
 
     def _startup(self):
         with self.app_context():
@@ -164,7 +172,7 @@ class FlaskPP(Flask):
     def _shutdown(self):
         with self.app_context():
             log("info", "Running shutdown hooks...")
-            [hook() for hook in self._shutdown_hooks]
+            [hook() for hook in reversed(self._shutdown_hooks)]
 
     def _run_server(self):
         import uvicorn
@@ -180,6 +188,19 @@ class FlaskPP(Flask):
         if self._shutdown_flag.is_set():
             return
         self._shutdown_flag.set()
+
+    def route(self, rule: str, **options: Any) -> Callable:
+        def decorator(fn):
+            endpoint = options.pop("endpoint", None)
+            self.add_app_url_rule(rule, endpoint, fn, **options)
+            return fn
+        return decorator
+
+    def add_app_url_rule(
+        self, rule: str, endpoint: str | None = None, view_func: Any = None,
+        **options: Any
+    ):
+        self._app.add_url_rule(rule, endpoint, view_func, **options)
 
     def to_asgi(self) -> WsgiToAsgi | ASGIApp:
         if self._asgi_app is not None:
@@ -217,24 +238,16 @@ class FlaskPP(Flask):
         if enabled("AUTOGENERATE_TAILWIND_CSS"):
             generate_tailwind_css(self)
 
-        from flaskpp import _fpp_root
-        _fpp_default = Blueprint(
-            "fpp_default", __name__,
-                 static_folder=_fpp_root / "app" / "static",
-                 static_url_path="/fpp-static"
-        )
-        self.register_blueprint(_fpp_default)
-
         self.url_prefix = ""
         register_modules(self)
-        self.static_url_path = f"{self.url_prefix}/static"
+        self.static_url_path = f"{self.url_prefix.rstrip('/')}/static"
         self.add_url_rule(
             f"{self.static_url_path}/<path:filename>",
             endpoint="static",
             view_func=lambda filename: send_from_directory(Path(self.root_path) / "static", filename)
         )
 
-        if enabled("FRONTEND_ENGINE"):
+        if enabled("FRONTEND_ENGINE") and self._allow_vite:
             from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context_processor(lambda: {
@@ -242,6 +255,17 @@ class FlaskPP(Flask):
             })
             self.frontend_engine = engine
             self.on_shutdown(engine.shutdown)
+
+        from flaskpp import _fpp_root
+        fpp_default = Blueprint(
+            "fpp_default", __name__,
+            static_folder=_fpp_root / "app" / "static",
+            static_url_path="/fpp-static"
+        )
+        self.register_blueprint(fpp_default)
+        self.register_blueprint(
+            self._app, url_prefix=self.url_prefix if self.url_prefix else "/"
+        )
 
         self._startup()
         self._server.start()
