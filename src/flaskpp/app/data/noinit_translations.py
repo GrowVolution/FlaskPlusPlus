@@ -1,3 +1,5 @@
+from importlib import import_module
+from typing import Callable
 import json
 
 from flaskpp.app.data import commit, _package, delete_model
@@ -118,3 +120,37 @@ def get_locale_data(locale: str) -> tuple[str, str]:
     flags = locale_data.get("flags", {})
     names = locale_data.get("names", {})
     return flags.get(locale, "🇬🇧"), names.get(locale, "English")
+
+
+def update_translations(executor: str, msg_keys: list[str], add_entries_fn: Callable, translations_import_name: str, domain: str = None):
+    default_domain = valid_state().domain.domain
+    if not domain:
+        domain = default_domain
+    entries = get_entries(domain=domain)
+
+    if entries:
+        log("info", f"[{executor}] Updating translations...")
+
+        keys = [e.key for e in entries]
+        for key in msg_keys:
+            if key not in keys:
+                add_entries_fn(key, domain)
+
+        translations_module = import_module(translations_import_name)
+        for entry in entries:
+            key = entry.key
+            translations = getattr(translations_module, f"_translations_{entry.locale}", _translations_en)
+            try:
+                if translations[key] != entry.text:
+                    entry.text = translations[key]
+            except KeyError:
+                if domain == default_domain:
+                    continue
+                delete_model(entry, False)
+    else:
+        log("info", f"[{executor}] Setting up translations...")
+
+        for key in msg_keys:
+            add_entries_fn(key, domain)
+
+    commit()

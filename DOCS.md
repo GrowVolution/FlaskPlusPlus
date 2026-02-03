@@ -249,7 +249,7 @@ At first, you would create a new python package inside **project_root/modules**.
 
 #### Manifest
 
-For your module to be recognized by Flask++ you need to create a **manifest.json** file inside your module package. It has to contain at least one field named "version". The following version string formats are supported (they are not case-sensitive):
+For your module to be recognized by Flask++ you need to create a **manifest.json** file inside your module package. It has to contain at least two fields: "version" and "type". The following version string formats are supported (they are not case-sensitive):
 
 ```
 x
@@ -276,6 +276,9 @@ A fully qualified manifest file would then look like this:
   "name": "Module Name",
   "description": "This module does ...",
   "version": "0.1",
+  "type": "default",            // can be either "default" or "base"
+  // -> If you set the module type to "base", your module can be used to extend other modules.
+  // Base modules are not allowed to be registered. Do not enable them in your app config.
   "requires": {
     "fpp": ">=0.3.5",           // the minimum required version of Flask++
     "packages": [               // PyPI packages that are required by your module
@@ -286,7 +289,9 @@ A fully qualified manifest file would then look like this:
     ],
     "modules": {                // other modules that are required by your module
       "module_id_01": "==0.2",
-      "module_id_02": "<0.7"
+      "module_id_02": "<0.7",
+      // -> Base module ids are also allowed here.
+      // In this case the module loader will check if a parent module that extends it is enabled.
     }
   }
 }
@@ -299,13 +304,15 @@ Inside your **\_\_init__.py** file, you create a `module: Module` variable and o
 ```python
 from flaskpp import Module
 from flaskpp.utils import enabled
+# from flaskpp.modules import import_base
 from flaskpp.exceptions import ModuleError
 
 module = Module(
     __file__,
     __name__,
-    # extends=YourBaseModule,
+    # extends=import_base("base_module_id"),
     # -> You can use base modules as extensions for your module.
+    # import_base will return None if the module is not installed or not a base module.
     # required_extensions=[
     #    "sqlalchemy",
     #    "socket",
@@ -325,13 +332,10 @@ module = Module(
     # -> You can disable the ability for your module to be the home module of the app.
     # allow_frontend_engine=False,
     # -> You can disable the frontend engine of your module if FRONTEND_ENGINE is set to 1.
-    # is_base=True
-    # -> You can set the module as a base module that can be used to extend other modules.
-    # Base modules are not allowed to be registered. Do not enable them in your app config.
 )
 
 # Now if you need to do stuff when your module gets enabled:
-@module.on_enable
+@module.on_enable   # This hook cannot be used by base modules.
 def on_enable(app: FlaskPP):
     # Check for required features, for example:
     if not enabled("FPP_PROCESSING"):
@@ -428,9 +432,25 @@ class ModuleConfig:
     # TODO: Overwrite default config values or provide your own
     pass
 
+# Or if you are working with base and extending modules, you might do something like this:
+# base_module_package/config.py
+
+class BaseModuleConfig:
+    # ...
+    pass
+
+# extended_module_package/config.py
+from modules.base_module_package.config import BaseModuleConfig
+
+@register_config()
+class ExtendingModuleConfig(BaseModuleConfig):
+    # ...
+    pass
+
 def module_config():
     # return {
         # TODO: Write required config data (will be prompted by the setup if module is set to 1)
+        # -> Base module configs will be prompted together with their extending modules (parent), when it gets enabled.
     
         # "protected_MY_SECRET": token_hex(32),
         # -> protected keys won't be prompted to the user
@@ -463,6 +483,8 @@ def init_models(mod: Module):
         rel = file.relative_to(_package).with_suffix("")
         import_module(f"{mod.import_name}.data.{".".join(rel.parts)}")
 ```
+
+This init file does not apply to base modules. Base modules can provide their own models, mixins or whatever data you would like to put into their data folder, but their data is meant to be used by their parents.
 
 #### Extracting
 
@@ -644,7 +666,7 @@ Be aware that default events should not contain any "@" inside their names, beca
 
 These two switches come together. The **FPP_I18N_FALLBACK** switch only takes effect if the **EXT_BABEL** switch is enabled too. This is because Flask++ also provides its own Babel class called FppBabel, which extends `flask_babelplus.Babel`. Besides that, Flask++ also changes the internationalization process to fit into the Flask++ environment. That's why **EXT_BABEL** requires the **EXT_SQLALCHEMY** switch to be enabled. The Flask++ i18n system primarily stores translations inside the database and only uses the message catalogs as fallback.
 
-It also provides its own domain resolving system, which matches with the Flask++ module system. This is also where the **FPP_I18N_FALLBACK** switch comes into play, because it adds a fallback domain called "flaskpp" which contains default translation keys providing German and English translations, that are used by the Flask++ [app utility](#further-utilities).
+It also provides its own domain resolving system, which matches with the Flask++ module system. This is also where the **FPP_I18N_FALLBACK** switch comes into play, because it adds a fallback domain called "flaskpp" which contains default translation keys providing German and English translations that are used by the Flask++ [app utility](#further-utilities).
 
 Let's take a look at how you set up Babel for a specific module and how the fallback escalation works:
 
@@ -812,7 +834,7 @@ class MyUserMixin:
     # ...
 ```
 
-You can also create your own forms for FST. For that simply create a **forms.py** file inside your module package. If EXT_FST is set to 1, the FlaskPP class will load it automatically and like with the FST mixins create a combined form class that is passed to the `security.init_app()` function. So you can plug in FST forms like that:
+You can also create your own forms for FST. For that create a **forms.py** file inside your module package. If EXT_FST is set to 1, the FlaskPP class will load it automatically and like with the FST mixins create a combined form class that is passed to the `security.init_app()` function. So you can plug in FST forms like that:
 
 ```python
 # module_package/forms.py

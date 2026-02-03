@@ -20,8 +20,9 @@ def install_module(module_id: str, src: str):
             if not isinstance(module, Module):
                 raise ImportError("Failed to import 'module: Module'.")
 
-            module.extract()
-            module.install_packages()
+            if not module.is_base:
+                module.extract()
+                module.install_packages()
 
             typer.echo(typer.style(
                 f"Module '{module}' has been successfully installed.",

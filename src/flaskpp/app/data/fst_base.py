@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Callable, TYPE_CHECKING
 import inspect
 
+from flaskpp.modules import installed_modules
 from flaskpp.utils import check_priority, build_sorted_tuple, enabled
 from flaskpp.app.extensions import db
 
@@ -27,13 +28,15 @@ def init_mixins(app: "FlaskPP"):
     if not modules.exists() or not modules.is_dir():
         return
 
-    for module in modules.iterdir():
-        if not module.is_dir():
+    for module_info in installed_modules(modules, False):
+        m, _, p = module_info
+        if not enabled(m):
             continue
 
-        fst_data = module / "data" / "noinit_fst.py"
-        if fst_data.exists():
-            import_module(f"modules.{module.name}.data.noinit_fst")
+        try:
+            import_module(f"modules.{p}.data.noinit_fst")
+        except ModuleNotFoundError:
+            pass
 
 
 def user_mixin(priority: int = 1) -> Callable:

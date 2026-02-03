@@ -38,31 +38,31 @@ class Module(Blueprint):
     def __init__(self, file: str, import_name: str,
                  extends: "Module" = None, required_extensions: list = None,
                  init_routes_on_enable: bool = True, allowed_for_home: bool = True,
-                 allow_frontend_engine: bool = True, is_base: bool = False):
+                 allow_frontend_engine: bool = True):
 
         if not "modules." in import_name:
             raise ModuleError("Modules have to be created inside the 'modules' package.")
-
-        if extends and is_base:
-            raise ModuleError("Base modules cannot extend other modules.")
-        elif extends and not extends.is_base:
-            raise ModuleError("Modules can only extend base modules.")
-
-        self.base = extends
-        self.is_base = is_base
-        self.parent = None
 
         self.module_name = import_name.split(".")[-1]
         self.import_name = import_name
         self.root_path = Path(file).parent
         manifest = self.root_path / "manifest.json"
         self.info = self._load_manifest(manifest)
+        self.is_base = self.info["type"] == "base"
         self.required_extensions = required_extensions or []
         self.context = {
             "NAME": self.info["id"],
         }
         self._handlers = {}
         self.home = False
+
+        if extends and self.is_base:
+            raise ModuleError("Base modules cannot extend other modules.")
+        elif extends and not extends.is_base:
+            raise ModuleError("Modules can only extend base modules.")
+
+        self.base = extends
+        self.parent = None
 
         if extends:
             self.required_extensions.extend(extends.required_extensions or [])
@@ -77,7 +77,7 @@ class Module(Blueprint):
             self.info["id"],
             import_name,
             static_folder=(Path(self.root_path) / "static"),
-            url_prefix="/base" if is_base else None
+            url_prefix="/base" if self.is_base else None
         )
 
     def __repr__(self):
@@ -86,6 +86,8 @@ class Module(Blueprint):
     def _enable(self, app: "FlaskPP", home: bool):
         if self.is_base:
             raise ModuleError(f"[{self.module_name}] Base modules are not allowed to be registered.")
+
+        self.check_module_requirements()
 
         if home and not self._allow_home:
             raise ModuleError(f"[{self.module_name}] Module is not allowed to be registered as home module.")
@@ -103,10 +105,16 @@ class Module(Blueprint):
                 f"module '{self.base.parent.module_name}'."
             )
         elif self.base:
+            self.base.check_module_requirements()
             self.base.init_handling()
             self.base.init_routes()
             self.register_blueprint(self.base)
-            self.errorhandler(NotFound)(self._not_found)
+
+            if self.home:
+                app.errorhandler(NotFound)(self._not_found)
+            else:
+                self.errorhandler(NotFound)(self._not_found)
+
             app.context[self.base.name.upper()] = self.name
             self.base.parent = self
 
@@ -192,70 +200,69 @@ class Module(Blueprint):
                         f"[{self.module_name}] Module requires Flask++ version {requirements['fpp']}."
                     )
 
-            if "modules" in requirements:
-                from flaskpp.modules import installed_modules
-                modules = installed_modules(Path(self.root_path).parent, False)
-                requirement = requirements["modules"]
-
-                if isinstance(requirement, list):
-                    new = {}
-                    for r in requirement:
-                        if not isinstance(r, str):
-                            raise ManifestError(f"[{self.module_name}] Invalid module requirement '{r}'.")
-                        r = r.split("@")
-                        if len(r) == 2:
-                            m, v = r
-                        else:
-                            m = r[0]
-                            v = "*"
-                        new[m] = v
-                    requirement = new
-
-                if not isinstance(requirement, dict):
-                    raise ManifestError(f"[{self.module_name}] Invalid modules requirement type: {type(requirement)}")
-
-                required_modules = [m for m in requirement]
-                fulfilled_modules = []
-
-                for module in modules:
-                    m, v, p = module
-                    m_enabled = enabled(m)
-
-                    if not (m_enabled or m in required_modules):
-                        if not m_enabled:
-                            continue
-
-                        try:
-                            mod = import_module(f"modules.{p}")
-                            mod = getattr(mod, "module", None)
-                            if mod is None or not mod.base:
-                                raise ImportError()
-
-                            m = mod.base.name
-                            if not m in required_modules:
-                                continue
-                        except (ModuleNotFoundError, ImportError):
-                            continue
-
-                    required_version = requirement.get(m)
-                    if not required_version:
-                        continue
-
-                    if check_required_version(required_version, "module", v):
-                        fulfilled_modules.append(m)
-
-                if len(required_modules) != len(fulfilled_modules):
-                    missing = [m for m in required_modules if m not in fulfilled_modules]
-                    raise ModuleError(
-                        f"[{self.module_name}] Missing or mismatching module requirements: {missing}"
-                    )
-
         return module_data
+
+    def check_module_requirements(self):
+        if not "requires" in self.info:
+            return
+
+        requirements = self.info["requires"]
+        if "modules" in requirements:
+            from flaskpp.modules import installed_modules, import_base
+            modules = installed_modules(Path(self.root_path).parent, False)
+            requirement = requirements["modules"]
+
+            if isinstance(requirement, list):
+                new = {}
+                for r in requirement:
+                    if not isinstance(r, str):
+                        raise ManifestError(f"[{self.module_name}] Invalid module requirement '{r}'.")
+                    r = r.split("@")
+                    if len(r) == 2:
+                        m, v = r
+                    else:
+                        m = r[0]
+                        v = "*"
+                    new[m] = v
+                requirement = new
+
+            if not isinstance(requirement, dict):
+                raise ManifestError(f"[{self.module_name}] Invalid modules requirement type: {type(requirement)}")
+
+            requirement_copy = requirement.copy()
+
+            for module in modules:
+                m, v, _ = module
+                if m not in requirement:
+                    continue
+
+                if not enabled(m):
+                    continue
+
+                if check_required_version(requirement.get(m, "*"), "module", v):
+                    requirement_copy.pop(m)
+
+            requirement = requirement_copy.copy()
+
+            for m, v in requirement.items():
+                base = import_base(m)
+                if base and check_required_version(v, "module", base.version):
+                    requirement_copy.pop(m)
+
+            if len(requirement_copy) > 0:
+                raise ModuleError(
+                    f"[{self.module_name}] Missing or mismatching module requirements: {[m for m in requirement_copy]}"
+                )
 
     def _not_found(self, error: NotFound) -> Response:
         if "static" in request.path:
             filename = request.path.replace("/static/", "::").split("::")[-1]
             return send_from_directory(Path(self.base.root_path) / "static", filename)
+
+        if request.path == "/" or "/base/base/base" in request.path:
+            from flaskpp.app.utils.processing import get_handler
+            return get_handler("handle_app_error")(error)
+
         prefix = self.url_prefix if self.url_prefix else ""
         return redirect(f"{prefix}/base{request.path}")
 
@@ -365,6 +372,8 @@ class Module(Blueprint):
                     extend = base_module_config() or {}
                 except (ModuleNotFoundError, ImportError, TypeError):
                     extend = {}
+            else:
+                extend = {}
 
             try:
                 main = module_config() or {}
@@ -415,7 +424,7 @@ class Module(Blueprint):
             log("warn", f"[{self.module_name}] Failed to register routes: {e}")
 
     def wrap_message(self, message: str) -> str:
-        domain = self.ref.context.get("DOMAIN")
+        domain = self.context.get("DOMAIN")
         if not domain:
             return message
         return f"{message}@{domain}"
@@ -450,7 +459,9 @@ class Module(Blueprint):
     def url_for(self, endpoint: str, **kwargs) -> str:
         if self.is_base and not self.parent:
             raise ModuleError(f"[{self.module_name}] Base modules require a parent module to calculate urls.")
-        return url_for(f"{self.ref.name}.{endpoint}", **kwargs)
+        elif self.is_base:
+            return url_for(f"{self.ref.name}.{self.name}.{endpoint}", **kwargs)
+        return url_for(f"{self.name}.{endpoint}", **kwargs)
 
     def on_enable(self, fn: Callable) -> Callable:
         if self.is_base:
