@@ -124,27 +124,20 @@ def create_module(module_name: str):
     templates.mkdir(exist_ok=True)
 
     register_config = "@register_config()"
-    extend_config = ""
-    if extends:
-        extend_config_import = f"{base.import_name if base else 'modules.' + extend_id}.config"
-        extend_config_name = f"{_config_name(base.name) if base else _config_name(extend_id)}Config"
-        config_import = f"""from flaskpp.app.config import register_config
-from {extend_config_import} import {extend_config_name}\n\n"""
-        extend_config = f"({extend_config_name})"
-
-    elif base_module:
+    if base_module:
         config_import = ""
         register_config = ""
 
     else:
-        config_import = "from flaskpp.app.config import register_config\n\n"
+        config_import = "from flaskpp.app.config import register_config\n"
 
+    config_name = _config_name(mod_id)
     (module_dst / "config.py").write_text(
         creator_templates.module_config.format(
             config_import=config_import,
             register=register_config,
-            extends=extend_config,
-            name=_config_name(mod_id)
+            name=config_name,
+            config_export=f"\n\nconfig_class = {config_name}Config" if base_module else ""
     ))
     (module_dst / "routes.py").write_text(
         creator_templates.module_routes

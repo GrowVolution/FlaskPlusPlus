@@ -1,7 +1,7 @@
 from pathlib import Path
 from importlib import import_module
 from flask_security.forms import LoginForm, RegisterFormV2
-from flask_mailman import EmailMessage
+from flask_mailman import EmailMessage, EmailMultiAlternatives
 from threading import Thread
 from typing import Callable, TYPE_CHECKING
 
@@ -27,7 +27,7 @@ def init_forms(app: "FlaskPP"):
             continue
 
         try:
-            import_module(f"modules.{p}.forms")
+            import_module(f"modules.{p}.fst_forms")
         except ModuleNotFoundError:
             pass
 
@@ -81,10 +81,12 @@ def build_register_form() -> type:
 
 
 def send_security_mail(msg: dict):
-    message = EmailMessage(
+    message = EmailMultiAlternatives(
         subject=msg["subject"],
         body=msg["body"],
         from_email=msg["sender"],
         to=[msg["recipient"]],
     )
+    if "html" in msg:
+        message.attach_alternative(msg["html"], "text/html")
     Thread(target=message.send).start()

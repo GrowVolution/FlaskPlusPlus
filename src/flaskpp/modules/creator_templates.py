@@ -74,8 +74,10 @@ def init_routes(mod: Module):
 
 module_config = """# from security import token_hex
 {config_import}
+from . import module
+
 {register}
-class {name}Config{extends}:
+class {name}Config(module.base_config):
     # TODO: Write your modules required config data here
     pass
     
@@ -93,7 +95,7 @@ def module_config():
         # "ADDITIONAL_DATA": "",
         # -> simple config prompt without default value
     # }}
-    pass"""
+    pass{config_export}"""
 
 
 module_index = """{% extends "base_example.html" %}

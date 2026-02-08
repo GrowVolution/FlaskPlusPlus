@@ -215,6 +215,8 @@ socket.on('error', async (message) => {
 });
 
 
+export const initializedEvent = new Event("FPPBaseInitialized");
+
 window.FPP = {
     showModal: showModal,
     hideModal: hideModal,
@@ -234,8 +236,9 @@ window.FPP = {
     socket: socket,
     emit: emit,
     emitAsync: emitAsync,
-}
 
+    initializedEvent: initializedEvent
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".modal").forEach(modal => {
@@ -243,4 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
         hideModal(modal);
         bindModalCloseEvents(modal);
     });
+
+    document.dispatchEvent(initializedEvent);
 });

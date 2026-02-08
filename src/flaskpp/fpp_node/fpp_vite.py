@@ -9,7 +9,7 @@ import typer, subprocess, json, signal, requests, os
 from flaskpp.fpp_node import home, _node_cmd, _node_env
 from flaskpp.tailwind import generate_asset
 from flaskpp.utils import enabled, is_port_free
-from flaskpp.utils.debugger import exception
+from flaskpp.utils.logging import exception
 from flaskpp.exceptions import ViteError
 
 

@@ -6,7 +6,7 @@ import os
 
 from flaskpp.modules import installed_modules
 from flaskpp.utils import enabled
-from flaskpp.utils.debugger import log
+from flaskpp.utils.logging import debug
 
 if TYPE_CHECKING:
     from flask import Flask
@@ -89,4 +89,4 @@ def _fix_missing(migrations: str):
                 content = f"{import_str}\n{content}"
                 with open(latest_file, "w", encoding="utf-8") as f:
                     f.write(content)
-                log("migrate", f"Fixed missing flask_security import in {latest_file}")
+                debug(f"[MIGRATE] Fixed missing flask_security import in {latest_file}")

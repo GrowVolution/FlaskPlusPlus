@@ -8,7 +8,7 @@ import json, typer, subprocess, sys
 
 from flaskpp.utils import (required_arg_count, require_extensions,
                            enabled, check_required_version)
-from flaskpp.utils.debugger import log
+from flaskpp.utils.logging import log, warn, debug
 from flaskpp.exceptions import ModuleError, ManifestError, EventHookException
 
 if TYPE_CHECKING:
@@ -137,7 +137,8 @@ class Module(Blueprint):
             )
             context_processor = lambda: dict(
                 **(self.base.context | self.context),
-                tailwind=mod_tailwind()
+                tailwind=mod_tailwind(),
+                context=(self.base.context | self.context)
             )
         else:
             mod_tailwind = lambda: Markup(
@@ -145,7 +146,8 @@ class Module(Blueprint):
             )
             context_processor = lambda: dict(
                 **self.context,
-                tailwind=mod_tailwind()
+                tailwind=mod_tailwind(),
+                context=self.context
             )
 
         if self.home:
@@ -168,22 +170,22 @@ class Module(Blueprint):
             raise ModuleError(f"[{self.module_name}] Failed to load manifest: {e}")
 
         if not "id" in module_data:
-            log("warn", f"[{self.module_name}] Missing id; Using package name as id instead.")
+            warn(f"[{self.module_name}] Missing id; Using package name as id instead.")
             module_data["id"] = self.module_name
 
         if not "name" in module_data:
-            log("warn", f"[{self.module_name}] Module name not defined, leaving empty.")
+            warn(f"[{self.module_name}] Module name not defined, leaving empty.")
         else:
             self.module_name = module_data["name"]
 
         if not "description" in module_data:
-            log("warn", f"[{self.module_name}] Missing description.")
+            warn(f"[{self.module_name}] Missing description.")
 
         if not "author" in module_data:
-            log("warn", f"[{self.module_name}] Author not defined.")
+            warn(f"[{self.module_name}] Author not defined.")
 
         if not "requires" in module_data:
-            log("warn", f"[{self.module_name}] Requirements not defined.")
+            warn(f"[{self.module_name}] Requirements not defined.")
 
         else:
             if not enabled("IN_EXECUTION"):
@@ -192,7 +194,7 @@ class Module(Blueprint):
             requirements = module_data["requires"]
 
             if not "fpp" in requirements:
-                log("warn", f"[{self.module_name}] Required Flask++ version of not defined.")
+                warn(f"[{self.module_name}] Required Flask++ version of not defined.")
             else:
                 fulfilled = check_required_version(requirements["fpp"])
                 if not fulfilled:
@@ -401,7 +403,7 @@ class Module(Blueprint):
                 raise ImportError("Missing init function in data.")
             init_models(self)
         except (ModuleNotFoundError, ImportError, TypeError) as e:
-            log("warn", f"[{self.module_name}] Failed to initialize database models: {e}")
+            debug(f"[{self.module_name}] Failed to initialize database models: {e}")
 
     def init_handling(self):
         try:
@@ -411,7 +413,7 @@ class Module(Blueprint):
                 raise ImportError("Missing init function in handling.")
             init_handling(self)
         except (ModuleNotFoundError, ImportError, TypeError) as e:
-            log("warn", f"[{self.module_name}] Failed to initialize handling: {e}")
+            debug(f"[{self.module_name}] Failed to initialize handling: {e}")
 
     def init_routes(self):
         try:
@@ -421,7 +423,7 @@ class Module(Blueprint):
                 raise ImportError("Missing init function in routes.")
             init(self)
         except (ModuleNotFoundError, ImportError, TypeError) as e:
-            log("warn", f"[{self.module_name}] Failed to register routes: {e}")
+            debug(f"[{self.module_name}] Failed to register routes: {e}")
 
     def wrap_message(self, message: str) -> str:
         domain = self.context.get("DOMAIN")
@@ -439,8 +441,8 @@ class Module(Blueprint):
 
     def handler(self, name: str) -> Callable:
         def decorator(func):
-            def wrapper(*args):
-                return func(self, *args)
+            def wrapper(*args, **kwargs):
+                return func(self, *args, **kwargs)
             self._handlers[name] = wrapper
             return wrapper
         return decorator
@@ -474,6 +476,17 @@ class Module(Blueprint):
 
         self._on_enable = fn
         return fn
+
+    @property
+    def base_config(self) -> object:
+        if not self.base:
+            return object
+
+        try:
+            base_config_module = import_module(f"{self.base.import_name}.config")
+            return getattr(base_config_module, "config_class", object)
+        except (ModuleNotFoundError, ImportError):
+            return object
 
     @property
     def version(self) -> ModuleVersion:

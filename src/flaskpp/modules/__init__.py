@@ -7,7 +7,7 @@ import os, typer, json
 
 from flaskpp.module import basic_checked_data, valid_version
 from flaskpp.utils import enabled
-from flaskpp.utils.debugger import log, exception
+from flaskpp.utils.logging import log, error, warn, exception
 from flaskpp.exceptions import ManifestError
 
 if TYPE_CHECKING:
@@ -124,13 +124,13 @@ def register_modules(app: "FlaskPP | Flask"):
             from flaskpp import Module
             module = getattr(mod, "module", None)
             if not isinstance(module, Module):
-                log("error", f"Missing 'module: Module' in module '{mod_id}'.")
+                error(f"Missing 'module: Module' in module '{mod_id}'.")
                 continue
 
             try:
-                log("info", f"Registering: {module}")
+                log(f"Registering: {module}")
             except ManifestError as e:
-                exception(e, f"Failed to log {mod_id}.module")
+                exception(e)
                 continue
 
             try:
@@ -154,7 +154,7 @@ def register_modules(app: "FlaskPP | Flask"):
                 if is_home:
                     primary_loader = loader_context[module.name]
 
-                log("info", f"[{module.module_name}] Registered module as {'home' if is_home else 'path'}.")
+                log(f"[{module.module_name}] Registered module as {'home' if is_home else 'path'}.")
 
             except Exception as e:
                 exception(e, f"[{module.module_name}] Failed registering module.")
@@ -163,17 +163,23 @@ def register_modules(app: "FlaskPP | Flask"):
 
     loaders = []
     app_loader = FileSystemLoader("templates")
+    fpp_loader = FileSystemLoader(str((Path(__file__).parent.parent / "app" / "templates").resolve()))
+
     if primary_loader:
         loaders.append(primary_loader)
+
     loaders.append(ChoiceLoader([
         app_loader, PrefixLoader({ "app": app_loader })
     ]))
+
     loaders.append(PrefixLoader(loader_context))
-    loaders.append(
-        FileSystemLoader(str((Path(__file__).parent.parent / "app" / "templates").resolve()))
-    )
+
+    loaders.append(ChoiceLoader([
+        fpp_loader, PrefixLoader({ "flaskpp": fpp_loader })
+    ]))
 
     app.jinja_loader = ChoiceLoader(loaders)
+    log(f"[{__name__}] Modules registered.")
 
 
 def installed_modules(package: Path, do_log: bool = True) -> list[tuple[str, str, str]]:
@@ -201,7 +207,7 @@ def installed_modules(package: Path, do_log: bool = True) -> list[tuple[str, str
                 (module_data.get("id", module.name), version, module.name)
             )
         except (ModuleNotFoundError, FileNotFoundError, AttributeError, ManifestError, json.JSONDecodeError) as e:
-            if do_log: log("warn", f"Invalid module package '{module.name}' in {package}: {e}.")
+            if do_log: warn(f"Invalid module package '{module.name}' in {package}: {e}.")
             continue
 
     return _modules[package]

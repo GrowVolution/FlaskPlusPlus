@@ -7,7 +7,7 @@ from http.cookies import SimpleCookie
 from typing import Callable, Any, TYPE_CHECKING
 
 from flaskpp.utils import enabled, random_code, async_result, decorate
-from flaskpp.utils.debugger import log, exception
+from flaskpp.utils.logging import log, exception
 
 if TYPE_CHECKING:
     from flaskpp import FlaskPP
@@ -55,6 +55,9 @@ class FppSocket(AsyncServer):
         if self.app is None:
             RuntimeError("Cannot establish connection: 'app' is None. Did you run init_app(app)?")
 
+        ip = environ.get("HTTP_X_FORWARDED_FOR", environ.get("REMOTE_ADDR"))
+        log(f"[SOCKET] Connection from {ip} with session id: {sid}")
+
         cookies = _get_cookies(environ)
         accept_lang = _get_accept_languages(environ)
 
@@ -75,7 +78,7 @@ class FppSocket(AsyncServer):
         payload = data.get("payload")
 
         event, namespace = resolve_namespace(event)
-        log("request", f"Socket event from {sid}: {event}@{namespace} - With data: {payload}")
+        log(f"[EVENT] Socket event from {sid}: {event}@{namespace} - With data: {payload}")
         def no_handler(*_): raise NotImplementedError(f"Socket event handler {event}@{namespace} not found.")
 
         handler = self.get_handler(event, namespace) or no_handler

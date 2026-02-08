@@ -74,6 +74,7 @@ def base_config():
 
         "dev": {
             "DB_AUTOUPDATE": 0,
+            "I18N_AUTOUPDATE": 0,
         }
     }
 

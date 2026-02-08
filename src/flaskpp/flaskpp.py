@@ -1,5 +1,4 @@
 from flask import Flask, Blueprint, send_from_directory
-from flask.sansio.scaffold import T_route
 from werkzeug.middleware.proxy_fix import ProxyFix
 from threading import Thread, Event
 from asgiref.wsgi import WsgiToAsgi
@@ -13,7 +12,7 @@ from flaskpp.i18n import init_i18n
 from flaskpp.tailwind import generate_tailwind_css
 from flaskpp.modules import register_modules
 from flaskpp.utils import enabled, required_arg_count, safe_string
-from flaskpp.utils.debugger import start_session, log
+from flaskpp.utils.logging import start_session, log
 from flaskpp.app import App
 from flaskpp.app.config import init_configs, build_config
 from flaskpp.app.data import db_autoupdate
@@ -65,7 +64,10 @@ class FlaskPP(Flask):
 
         if enabled("FPP_PROCESSING"):
             self.context = {}
-            self.context_processor(lambda: self.context)
+            self.context_processor(lambda: dict(
+                **self.context,
+                main_context=self.context
+            ))
             set_default_handlers(self)
 
         ext_database = enabled("EXT_SQLALCHEMY")
@@ -106,7 +108,7 @@ class FlaskPP(Flask):
             from flask_security import SQLAlchemyUserDatastore
 
             from flaskpp.app.extensions import security, db
-            from flaskpp.app.data.fst_base import init_mixins, build_user_model, build_role_model
+            from flaskpp.app.data.fst import init_mixins, build_user_model, build_role_model
             from flaskpp.app.utils.fst import init_forms, build_login_form, build_register_form, send_security_mail
             init_mixins(self)
             init_forms(self)
@@ -166,25 +168,36 @@ class FlaskPP(Flask):
 
     def _startup(self):
         with self.app_context():
-            log("info", "Running startup hooks...")
+            log("Running startup hooks...")
             [hook() for hook in self._startup_hooks]
 
     def _shutdown(self):
         with self.app_context():
-            log("info", "Running shutdown hooks...")
+            log("Running shutdown hooks...")
             [hook() for hook in reversed(self._shutdown_hooks)]
 
     def _run_server(self):
         import uvicorn
+
+        fpp_processing = enabled("FPP_PROCESSING")
+        if enabled("DEBUG_MODE") and not fpp_processing:
+            log_level = "debug"
+        elif not fpp_processing:
+            log_level = "info"
+        else:
+            log_level = self.config.get("UVICORN_LOGLEVEL", "warning")
+
+        log(f"[{__name__}] Uvicorn loglevel: {log_level}")
+
         uvicorn.run(
             self.to_asgi(),
             host="0.0.0.0",
             port=int(os.getenv("SERVER_PORT", "5000")),
-            log_level="debug" if enabled("DEBUG_MODE") else "info",
+            log_level="info"
         )
 
     def _handle_shutdown(self, signum: int, frame: "FrameType"):
-        log("info", f"Handling signal {'SIGINT' if signum == signal.SIGINT else 'SIGTERM'}: Shutting down...")
+        log(f"Handling signal {'SIGINT' if signum == signal.SIGINT else 'SIGTERM'}: Shutting down...")
         if self._shutdown_flag.is_set():
             return
         self._shutdown_flag.set()
@@ -233,7 +246,10 @@ class FlaskPP(Flask):
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
 
-        start_session(enabled("DEBUG_MODE"))
+        log_level = self.config.get(
+            "LOGLEVEL", "debug" if enabled("DEBUG_MODE") else "info"
+        )
+        start_session(log_level)
 
         if enabled("AUTOGENERATE_TAILWIND_CSS"):
             generate_tailwind_css(self)
@@ -246,6 +262,8 @@ class FlaskPP(Flask):
             endpoint="static",
             view_func=lambda filename: send_from_directory(Path(self.root_path) / "static", filename)
         )
+
+        log(f"[{__name__}] Modules registered.")
 
         if enabled("FRONTEND_ENGINE") and self._allow_vite:
             from flaskpp.fpp_node.fpp_vite import Frontend
@@ -266,6 +284,8 @@ class FlaskPP(Flask):
         self.register_blueprint(
             self._app, url_prefix=self.url_prefix if self.url_prefix else "/"
         )
+
+        log(f"[{__name__}] Finished loading.")
 
         self._startup()
         self._server.start()

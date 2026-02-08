@@ -3,11 +3,11 @@ from werkzeug.exceptions import Forbidden, NotFound
 from markupsafe import Markup
 from typing import Callable
 
-from flaskpp.app.data.noinit_translations import get_locale_data
 from flaskpp.app.utils.translating import get_locale
 from flaskpp.app.utils.auto_nav import build_nav
+from flaskpp.app.utils.i18n import get_locale_data
 from flaskpp.utils import random_code, enabled
-from flaskpp.utils.debugger import log, exception
+from flaskpp.utils.logging import log, exception
 
 _handlers = {}
 
@@ -39,7 +39,7 @@ def _before_request():
     agent = request.headers.get("User-Agent")
     agent = agent if agent else "no-agent"
 
-    log("request", f"{method:4} '{path:48}' from {ip:15} via ({agent}).")
+    log(f"[REQUEST] {method:4} '{path:50}'\t\tfrom {ip:15} via ({agent}).")
 
 
 def after_request(fn: Callable) -> Callable:

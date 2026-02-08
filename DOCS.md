@@ -580,12 +580,13 @@ The default features of the FppSocket class are its event_context (inspired by F
 
 ```python
 from flaskpp.app.extensions import socket
-from flaskpp.utils.debugger import log
+from flaskpp.utils.logging import log
+
 
 @socket.on("my_event")
 async def event(
-    sid: str,       # if you did not set sid_passing to False
-    payload: Any
+        sid: str,  # if you did not set sid_passing to False
+        payload: Any
 ):
     # here you can access:
     ctx = socket.event_context
