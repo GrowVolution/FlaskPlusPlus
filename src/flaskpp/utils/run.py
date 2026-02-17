@@ -21,7 +21,8 @@ def prepare():
     conf_path.mkdir(parents=True, exist_ok=True)
     logs_path.mkdir(parents=True, exist_ok=True)
     if not any(conf_path.glob("*.conf")):
-        subprocess.run([sys.executable, str(root_path / "setup.py")], check=True)
+        subprocess.run([sys.executable, "-m", "flaskpp", "setup"], check=True)
+        typer.echo("\n\n")
 
 
 def _env_from_conf(conf_file: Path) -> dict:
@@ -63,6 +64,7 @@ def start_app(conf_file: Path, default_port: int, reload: bool = False) -> int:
         ))
 
     base_env = _env_from_conf(conf_file)
+    base_env["IN_EXECUTION"] = "1"
     base_env["APP_NAME"] = app_name
 
     if reload and app_name in apps:

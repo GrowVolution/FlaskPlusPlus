@@ -5,14 +5,15 @@ from asgiref.wsgi import WsgiToAsgi
 from socketio import ASGIApp
 from pathlib import Path
 from importlib.metadata import version as _version
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, Any, TYPE_CHECKING
 import os, signal
 
 from flaskpp.i18n import init_i18n
 from flaskpp.tailwind import generate_tailwind_css
 from flaskpp.modules import register_modules
 from flaskpp.utils import enabled, required_arg_count, safe_string
-from flaskpp.utils.debugger import start_session, log
+from flaskpp.utils.logging import start_session, log
+from flaskpp.app import App
 from flaskpp.app.config import init_configs, build_config
 from flaskpp.app.data import db_autoupdate
 from flaskpp.app.utils.processing import set_default_handlers
@@ -31,11 +32,12 @@ class FppVersion(tuple):
 
 
 class FlaskPP(Flask):
-    def __init__(self, import_name: str):
+    def __init__(self, import_name: str, allow_frontend_engine: bool = True, **kwargs):
         super().__init__(
             import_name,
             static_folder=None,
-            static_url_path=None
+            static_url_path=None,
+            **kwargs
         )
         self.name = safe_string(os.getenv("APP_NAME", self.import_name)).lower()
 
@@ -61,6 +63,11 @@ class FlaskPP(Flask):
         limiter.init_app(self)
 
         if enabled("FPP_PROCESSING"):
+            self.context = {}
+            self.context_processor(lambda: dict(
+                **self.context,
+                main_context=self.context
+            ))
             set_default_handlers(self)
 
         ext_database = enabled("EXT_SQLALCHEMY")
@@ -70,7 +77,7 @@ class FlaskPP(Flask):
             from flaskpp.app.data import init_models
             db.init_app(self)
             migrate.init_app(self, db)
-            init_models()
+            init_models(self)
 
             if enabled("DB_AUTOUPDATE"):
                 db_updater = Thread(target=db_autoupdate, args=(self,))
@@ -86,7 +93,10 @@ class FlaskPP(Flask):
             from flaskpp.app.extensions import babel
             from flaskpp.app.utils.translating import set_locale
             babel.init_app(self)
-            self.route("/lang/<locale>")(set_locale)
+            self.add_url_rule(
+                "/lang/<locale>",
+                view_func=set_locale
+            )
 
             if enabled("FPP_I18N_FALLBACK") and ext_database:
                 from flaskpp.app.data.noinit_translations import setup_db
@@ -98,15 +108,19 @@ class FlaskPP(Flask):
             from flask_security import SQLAlchemyUserDatastore
 
             from flaskpp.app.extensions import security, db
-            from flaskpp.app.data.fst_base import init_mixins, build_user_model, build_role_model
+            from flaskpp.app.data.fst import init_mixins, build_user_model, build_role_model
+            from flaskpp.app.utils.fst import init_forms, build_login_form, build_register_form, send_security_mail
             init_mixins(self)
+            init_forms(self)
+
             security.init_app(
                 self,
                 SQLAlchemyUserDatastore(
-                    db,
-                    build_user_model(),
-                    build_role_model()
-                )
+                    db, build_user_model(), build_role_model()
+                ),
+                login_form=build_login_form(),
+                register_form=build_register_form(),
+                send_mail=send_security_mail,
             )
 
         if enabled("EXT_AUTHLIB"):
@@ -130,7 +144,9 @@ class FlaskPP(Flask):
 
         if enabled("EXT_API"):
             from flaskpp.app.extensions import api
-            api.init_app(self)
+            api.init_app(
+                self, prefix=f"/api/{self.config.get('API_VERSION', 'v1')}"
+            )
 
         if enabled("EXT_JWT_EXTENDED"):
             from flaskpp.app.extensions import jwt
@@ -144,34 +160,60 @@ class FlaskPP(Flask):
         if db_updater:
             db_updater.start()
 
+        self._app = App(import_name)
         self._asgi_app = None
         self._server = Thread(target=self._run_server, daemon=True)
         self._shutdown_flag = Event()
+        self._allow_vite = allow_frontend_engine
 
     def _startup(self):
         with self.app_context():
-            log("info", "Running startup hooks...")
+            log("Running startup hooks...")
             [hook() for hook in self._startup_hooks]
 
     def _shutdown(self):
         with self.app_context():
-            log("info", "Running shutdown hooks...")
-            [hook() for hook in self._shutdown_hooks]
+            log("Running shutdown hooks...")
+            [hook() for hook in reversed(self._shutdown_hooks)]
 
     def _run_server(self):
         import uvicorn
+
+        fpp_processing = enabled("FPP_PROCESSING")
+        if enabled("DEBUG_MODE") and not fpp_processing:
+            log_level = "debug"
+        elif not fpp_processing:
+            log_level = "info"
+        else:
+            log_level = self.config.get("UVICORN_LOGLEVEL", "warning")
+
+        log(f"[{__name__}] Uvicorn loglevel: {log_level}")
+
         uvicorn.run(
             self.to_asgi(),
             host="0.0.0.0",
             port=int(os.getenv("SERVER_PORT", "5000")),
-            log_level="debug" if enabled("DEBUG_MODE") else "info",
+            log_level="info"
         )
 
     def _handle_shutdown(self, signum: int, frame: "FrameType"):
-        log("info", f"Handling signal {'SIGINT' if signum == signal.SIGINT else 'SIGTERM'}: Shutting down...")
+        log(f"Handling signal {'SIGINT' if signum == signal.SIGINT else 'SIGTERM'}: Shutting down...")
         if self._shutdown_flag.is_set():
             return
         self._shutdown_flag.set()
+
+    def route(self, rule: str, **options: Any) -> Callable:
+        def decorator(fn):
+            endpoint = options.pop("endpoint", None)
+            self.add_app_url_rule(rule, endpoint, fn, **options)
+            return fn
+        return decorator
+
+    def add_app_url_rule(
+        self, rule: str, endpoint: str | None = None, view_func: Any = None,
+        **options: Any
+    ):
+        self._app.add_url_rule(rule, endpoint, view_func, **options)
 
     def to_asgi(self) -> WsgiToAsgi | ASGIApp:
         if self._asgi_app is not None:
@@ -204,29 +246,26 @@ class FlaskPP(Flask):
         signal.signal(signal.SIGTERM, self._handle_shutdown)
         signal.signal(signal.SIGINT, self._handle_shutdown)
 
-        start_session(enabled("DEBUG_MODE"))
+        log_level = self.config.get(
+            "LOGLEVEL", "debug" if enabled("DEBUG_MODE") else "info"
+        )
+        start_session(log_level)
 
         if enabled("AUTOGENERATE_TAILWIND_CSS"):
             generate_tailwind_css(self)
 
-        from flaskpp import _fpp_root
-        _fpp_default = Blueprint(
-            "fpp_default", __name__,
-                 static_folder=_fpp_root / "app" / "static",
-                 static_url_path="/fpp-static"
-        )
-        self.register_blueprint(_fpp_default)
-
         self.url_prefix = ""
         register_modules(self)
-        self.static_url_path = f"{self.url_prefix}/static"
+        self.static_url_path = f"{self.url_prefix.rstrip('/')}/static"
         self.add_url_rule(
             f"{self.static_url_path}/<path:filename>",
             endpoint="static",
             view_func=lambda filename: send_from_directory(Path(self.root_path) / "static", filename)
         )
 
-        if enabled("FRONTEND_ENGINE"):
+        log(f"[{__name__}] Modules registered.")
+
+        if enabled("FRONTEND_ENGINE") and self._allow_vite:
             from flaskpp.fpp_node.fpp_vite import Frontend
             engine = Frontend(self)
             self.context_processor(lambda: {
@@ -234,6 +273,19 @@ class FlaskPP(Flask):
             })
             self.frontend_engine = engine
             self.on_shutdown(engine.shutdown)
+
+        from flaskpp import _fpp_root
+        fpp_default = Blueprint(
+            "fpp_default", __name__,
+            static_folder=_fpp_root / "app" / "static",
+            static_url_path="/fpp-static"
+        )
+        self.register_blueprint(fpp_default)
+        self.register_blueprint(
+            self._app, url_prefix=self.url_prefix if self.url_prefix else "/"
+        )
+
+        log(f"[{__name__}] Finished loading.")
 
         self._startup()
         self._server.start()

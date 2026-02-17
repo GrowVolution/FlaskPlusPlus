@@ -1,12 +1,39 @@
 from pathlib import Path
 from git import Repo, exc
+from importlib import import_module
 import typer, shutil
 
-from flaskpp.modules import module_home
+from flaskpp.modules import setup_globals
 
 def install_module(module_id: str, src: str):
+    module_home, _ = setup_globals()
+
     if not src:
         raise NotImplementedError("Module hub is not ready yet.")
+
+    def finalize():
+        try:
+            mod = import_module(f"modules.{module_id}")
+            module = getattr(mod, "module", None)
+
+            from flaskpp import Module
+            if not isinstance(module, Module):
+                raise ImportError("Failed to import 'module: Module'.")
+
+            if not module.is_base:
+                module.extract()
+                module.install_packages()
+
+            typer.echo(typer.style(
+                f"Module '{module}' has been successfully installed.",
+                fg=typer.colors.GREEN, bold=True
+            ))
+
+        except (ModuleNotFoundError, ImportError, TypeError) as e:
+            typer.echo(typer.style(
+                f"Failed to load module: {e}",
+                fg=typer.colors.RED, bold=True
+            ))
 
     typer.echo(f"Installing {module_id}...")
     mod_src = Path(src)
@@ -22,6 +49,7 @@ def install_module(module_id: str, src: str):
             ))
             return
         shutil.copytree(mod_src, mod_dst, dirs_exist_ok=True)
+        finalize()
         return
 
     if not src.startswith("http"):
@@ -37,8 +65,6 @@ def install_module(module_id: str, src: str):
             "Failed to clone from source.",
             fg=typer.colors.YELLOW, bold=True
         ))
+        return
 
-    typer.echo(typer.style(
-        f"Module '{module_id}' has been successfully installed.",
-        fg=typer.colors.GREEN, bold=True
-    ))
+    finalize()

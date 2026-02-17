@@ -2,11 +2,20 @@ import json, typer, shutil
 
 from flaskpp.flaskpp import version
 from flaskpp.module import version_check
-from flaskpp.modules import creator_templates, module_home
+from flaskpp.modules import creator_templates, setup_globals, import_base
 from flaskpp.utils import prompt_yes_no, sanitize_text, safe_string
 
 
+def _config_name(mod_id: str) -> str:
+    config_name = ""
+    for s in mod_id.split("_"):
+        config_name += s.capitalize()
+    return config_name
+
+
 def create_module(module_name: str):
+    module_home, _ = setup_globals()
+
     tmp_id = safe_string(module_name).lower()
     mod_id = sanitize_text(input(f"Enter your module id ({tmp_id}): "))
     if not mod_id.strip():
@@ -20,19 +29,58 @@ def create_module(module_name: str):
             f"There is already a folder named '{mod_id}' in modules.",
             fg=typer.colors.YELLOW, bold=True
         ))
-        if not prompt_yes_no("Do you want to overwrite it? (y/N)"):
+        if not prompt_yes_no("Do you want to overwrite it? (y/N) "):
             return
         shutil.rmtree(module_dst)
     module_dst.mkdir(exist_ok=True)
+
+    base_module = prompt_yes_no("Do you want to create a base module? (y/N) ")
+    extends = False if base_module else prompt_yes_no("Do you want to extend another module? (y/N) ")
+
+    extend_import = ""
+    extend_id = ""
+    extend = ""
+    base = None
+    if extends:
+        extend_import = f"from flaskpp.modules import import_base\n"
+
+        extend_id = sanitize_text(input("Enter the id of the module you want to extend [required]: "))
+        while not extend_id.strip():
+            typer.echo(typer.style(
+                "If you want to extend another module, you must provide its id.",
+                fg=typer.colors.RED, bold=True
+            ))
+            extend_id = sanitize_text(input("Enter a module id: "))
+
+        new_extend_id = safe_string(extend_id)
+        if new_extend_id != extend_id:
+            typer.echo(typer.style(
+                f"Module ids must be safe strings! Changed '{extend_id}' to '{new_extend_id}'.",
+                fg=typer.colors.YELLOW
+            ))
+
+        extend_id = new_extend_id
+        base = import_base(extend_id)
+        if not base:
+            typer.echo(typer.style(
+                f"There is no module with id '{extend_id}' installed inside this project.",
+                fg=typer.colors.RED, bold=True
+            ))
+            if not prompt_yes_no("Do you want to continue anyway? (y/N)"):
+                return
+
+        extend = f'import_base("{extend_id}")'
 
     manifest = {
         "id": mod_id,
         "name": sanitize_text(input(f"Enter the name of your module ({module_name}): ")),
         "description": sanitize_text(input("Describe your module briefly: ")),
         "version": sanitize_text(input("Enter the version of your module [required]: ")),
+        "type": "base" if base_module else "default",
         "author": sanitize_text(input("Enter your name or nickname: ")),
         "requires": {
-            "fpp": f">={str(version()).strip("v")}",
+            "fpp": f">={str(version()).strip('v')}",
+            "packages": [],
             "modules": {}
         }
     }
@@ -47,7 +95,7 @@ def create_module(module_name: str):
 
     for info in ["description", "author"]:
         if not manifest[info].strip():
-            typer.echo(typer.style(f"Missing {info}... Ignoring manifest entry.", fg=typer.colors.YELLOW, bold=True))
+            typer.echo(typer.style(f"Missing {info}... Ignoring manifest entry.", fg=typer.colors.YELLOW))
             manifest.pop(info)
 
     typer.echo(typer.style(f"Writing manifest...", bold=True))
@@ -75,14 +123,21 @@ def create_module(module_name: str):
     templates = module_dst / "templates"
     templates.mkdir(exist_ok=True)
 
+    register_config = "@register_config()"
+    if base_module:
+        config_import = ""
+        register_config = ""
 
-    config_name = ""
-    for s in mod_id.split("_"):
-        config_name += s.capitalize()
+    else:
+        config_import = "from flaskpp.app.config import register_config\n"
 
+    config_name = _config_name(mod_id)
     (module_dst / "config.py").write_text(
         creator_templates.module_config.format(
-            name=config_name
+            config_import=config_import,
+            register=register_config,
+            name=config_name,
+            config_export=f"\n\nconfig_class = {config_name}Config" if base_module else ""
     ))
     (module_dst / "routes.py").write_text(
         creator_templates.module_routes
@@ -95,22 +150,40 @@ def create_module(module_name: str):
     )
     (css / "tailwind_raw.css").write_text(creator_templates.tailwind_raw)
 
+    extract = module_dst / "extract"
+    (extract / "static").mkdir(parents=True, exist_ok=True)
+    (extract / "templates").mkdir(exist_ok=True)
+
     typer.echo(typer.style(f"Setting up requirements...", bold=True))
 
     required = []
+    base_extensions = base.required_extensions if base else []
     for extension in creator_templates.extensions:
         require = prompt_yes_no(f"Do you want to use {extension} in this module? (y/N) ")
-        if not require:
-            continue
-        required.append(f'"{extension}"')
-        if extension == "sqlalchemy":
+
+        if extension == "sqlalchemy" and (require or extension in base_extensions):
             data = module_dst / "data"
             data.mkdir(exist_ok=True)
-            (data / "__init__.py").write_text(creator_templates.module_data_init)
+            if not base_module:
+                (data / "__init__.py").write_text(creator_templates.module_data_init)
+
+        if not require:
+            continue
+
+        required.append(f'"{extension}"')
+
+    requires = ""
+    if required:
+        requires = f"""\n\trequired_extensions=[
+        {",\n\t\t".join(required)}
+    ],"""
 
     (module_dst / "__init__.py").write_text(
         creator_templates.module_init.format(
-            requirements=",\n\t\t".join(required)
+            extend_import=extend_import,
+            extend=f"\n\textends={extend}," if extends else "",
+            requires=requires,
+            is_base="\n\tis_base=True" if base_module else ""
         )
     )
 

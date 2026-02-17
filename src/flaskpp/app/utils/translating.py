@@ -9,12 +9,13 @@ from flaskpp.app.extensions import socket
 from flaskpp.exceptions import I18nError
 
 
-def _t(s: str, wrap: bool = None) -> str:
-    return s
+def _t(s: str, wrap: bool = None, **vars) -> str:
+    return s if not vars else s % vars
 
 
-def _tn(s: str, p: str, n: int, wrap: bool = None) -> str:
-    return p if (n != 1) else s
+def _tn(s: str, p: str, n: int, wrap: bool = None, **vars) -> str:
+    vars.setdefault("n", n)
+    return (s if n == 1 else s) % vars
 
 
 def _wrapped_message(msg: str) -> str:
@@ -67,7 +68,7 @@ def _get_fallbacks() -> list[str]:
     return fallbacks
 
 
-def _fallback_escalated_text(msg: str, *args) -> str:
+def _fallback_escalated_text(msg: str, vars: dict, *args) -> str:
     domain, msg, domain_str = _get_domain_data(msg)
     translations = domain.get_translations(domain_str)
     text = _gettext(translations, msg, *args)
@@ -80,7 +81,7 @@ def _fallback_escalated_text(msg: str, *args) -> str:
         text = _gettext(translations, msg, *args)
         index += 1
 
-    return text
+    return _t(text, None, **vars)
 
 
 def supported_locales() -> list[str]:
@@ -130,19 +131,19 @@ def set_locale(locale: str) -> Response:
 
 
 if enabled("EXT_BABEL"):
-    def t(message: str, wrap: bool = True) -> str:
+    def t(message: str, wrap: bool = True, **vars) -> str:
         if not has_app_context():
-            return _t(message)
+            return _t(message, wrap, **vars)
         if wrap:
             message = _wrapped_message(message)
-        return _fallback_escalated_text(message)
+        return _fallback_escalated_text(message, vars)
 
-    def tn(singular: str, plural: str, n: int, wrap: bool = True) -> str:
+    def tn(singular: str, plural: str, n: int, wrap: bool = True, **vars) -> str:
         if not has_app_context():
-            return _tn(singular, plural, n)
+            return _tn(singular, plural, n, wrap, **vars)
         if wrap:
             singular = _wrapped_message(singular)
-        return _fallback_escalated_text(singular, plural, n)
+        return _fallback_escalated_text(singular, vars, plural, n)
 else:
     t = _t
     tn = _tn

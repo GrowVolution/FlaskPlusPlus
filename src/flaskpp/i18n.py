@@ -1,6 +1,7 @@
 from flask_babelplus import Domain
 from babel.support import Translations
 from flask import Flask, current_app
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from flaskpp.utils import enabled
@@ -58,8 +59,15 @@ class DBDomain(Domain):
         key = f"{locale}@{domain}"
         translations = cache.get(key)
         if translations is None:
+
+            if domain == "flask_security":
+                from flask_security import __path__ as fs_path
+                translations_dir = Path(fs_path[0]) / "translations"
+            else:
+                translations_dir = current_app.config.get("BABEL_TRANSLATION_DIRECTORIES", "translations")
+
             wrapped = Translations.load(
-                dirname=current_app.config.get("BABEL_TRANSLATION_DIRECTORIES", "translations"),
+                dirname=translations_dir,
                 locales=locale,
                 domain=domain
             )

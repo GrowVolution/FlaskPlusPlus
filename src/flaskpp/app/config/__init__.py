@@ -2,8 +2,9 @@ from pathlib import Path
 from importlib import import_module
 from typing import Callable, TYPE_CHECKING
 
+from flaskpp.modules import installed_modules
 from flaskpp.app.config.default import DefaultConfig
-from flaskpp.utils import check_priority, build_sorted_tuple
+from flaskpp.utils import check_priority, build_sorted_tuple, enabled
 
 if TYPE_CHECKING:
     from flaskpp import FlaskPP
@@ -20,13 +21,15 @@ def init_configs(app: "FlaskPP"):
     if not modules.exists() or not modules.is_dir():
         return
 
-    for module in modules.iterdir():
-        if not module.is_dir():
+    for module_info in installed_modules(modules):
+        m, _, p = module_info
+        if not enabled(m):
             continue
 
-        config = module / "config.py"
-        if config.exists():
-            import_module(f"modules.{module.name}.config")
+        try:
+            import_module(f"modules.{p}.config")
+        except ModuleNotFoundError:
+            pass
 
 
 def register_config(priority: int = 1) -> Callable:

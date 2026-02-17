@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Callable, TYPE_CHECKING
 import inspect
 
-from flaskpp.utils import check_priority, build_sorted_tuple
+from flaskpp.modules import installed_modules
+from flaskpp.utils import check_priority, build_sorted_tuple, enabled
 from flaskpp.app.extensions import db
 
 if TYPE_CHECKING:
@@ -27,13 +28,15 @@ def init_mixins(app: "FlaskPP"):
     if not modules.exists() or not modules.is_dir():
         return
 
-    for module in modules.iterdir():
-        if not module.is_dir():
+    for module_info in installed_modules(modules, False):
+        m, _, p = module_info
+        if not enabled(m):
             continue
 
-        fst_data = module / "data" / "noinit_fst.py"
-        if fst_data.exists():
-            import_module(f"modules.{module.name}.data.noinit_fst")
+        try:
+            import_module(f"modules.{p}.data.noinit_fst")
+        except ModuleNotFoundError:
+            pass
 
 
 def user_mixin(priority: int = 1) -> Callable:
@@ -79,15 +82,9 @@ def build_role_model() -> type:
 
     return type(
         "Role",
-        bases + (db.Model, fsqla.FsRoleMixin),
+        bases + (db.Model, fsqla.FsRoleMixinV2),
         {}
     )
 
-
-user_roles = db.Table(
-    "user_roles",
-    db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
-    db.Column("role_id", db.Integer, db.ForeignKey("role.id"), primary_key=True)
-)
-
-fsqla.FsModels.set_db_info(db)
+if enabled("EXT_FST"):
+    fsqla.FsModels.set_db_info(db)

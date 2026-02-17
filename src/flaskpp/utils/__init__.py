@@ -2,7 +2,7 @@ from functools import wraps
 from typing import Callable, Any, TYPE_CHECKING
 import os, string, random, socket, inspect, re
 
-from flaskpp.utils.debugger import log
+from flaskpp.utils.logging import warn
 
 if TYPE_CHECKING:
     from flaskpp import FppVersion, ModuleVersion
@@ -134,7 +134,7 @@ def require_extensions(*extensions):
         def wrapper(*args, **kwargs):
             for ext in extensions:
                 if not isinstance(ext, str):
-                    log("warn", f"Invalid extension '{ext}'.")
+                    warn(f"Invalid extension '{ext}'.")
                     continue
 
                 if not enabled(f"EXT_{ext.upper()}"):

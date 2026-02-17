@@ -1,11 +1,10 @@
-import json
-
-from flaskpp.app.data import commit, _package
-from flaskpp.app.data.babel import add_entry, get_entries, get_entry
 from flaskpp.babel import valid_state
 from flaskpp.utils import enabled
-from flaskpp.utils.debugger import log
+from flaskpp.app.utils.i18n import update_translations
 from flaskpp.exceptions import I18nError
+
+
+translations: dict[str, dict[str, str]] = {}
 
 _msg_keys = [
     "NAV_BRAND",
@@ -20,10 +19,12 @@ _msg_keys = [
     "NO",
     "HINT",
     "UNDERSTOOD",
+    "FORBIDDEN_TITLE",
+    "FORBIDDEN_MSG",
 
 ]
 
-_translations_en = {
+translations["en"] = {
     _msg_keys[0]: "My Flask++ App",
     _msg_keys[1]: "Not Found",
     _msg_keys[2]: "We are sorry, but the requested page doesn't exist.",
@@ -36,10 +37,12 @@ _translations_en = {
     _msg_keys[9]: "No",
     _msg_keys[10]: "Hint",
     _msg_keys[11]: "Understood",
+    _msg_keys[12]: "Access Denied",
+    _msg_keys[13]: "You are not authorized to access this page.",
 
 }
 
-_translations_de = {
+translations["de"] = {
     _msg_keys[0]: "Meine Flask++ App",
     _msg_keys[1]: "Nicht Gefunden",
     _msg_keys[2]: "Wir konnten die angefragte Seite leider nicht finden.",
@@ -52,13 +55,10 @@ _translations_de = {
     _msg_keys[9]: "Nein",
     _msg_keys[10]: "Hinweis",
     _msg_keys[11]: "Verstanden",
+    _msg_keys[12]: "Zugriff Verweigert",
+    _msg_keys[13]: "Du bist nicht berechtigt auf diese Seite zuzugreifen."
 
 }
-
-
-def _add_entries(key: str, domain: str):
-    add_entry("en", key, _translations_en[key], domain, False)
-    add_entry("de", key, _translations_de[key], domain, False)
 
 
 def setup_db(domain: str = "flaskpp"):
@@ -67,43 +67,4 @@ def setup_db(domain: str = "flaskpp"):
 
     state = valid_state()
     state.fpp_fallback_domain = domain
-    entries = get_entries(domain=domain, locale="en")
-
-    if entries:
-        log("info", f"Updating Flask++ base translations...")
-
-        keys = [e.key for e in entries]
-        for key in _msg_keys:
-            if key not in keys:
-                _add_entries(key, domain)
-
-        for entry in entries:
-            key = entry.key
-            if _translations_en[key] != entry.text:
-                entry.text = _translations_en[key]
-                entry_de = get_entry(key, "de", domain)
-                entry_de.text = _translations_de[key]
-    else:
-        log("info", f"Setting up Flask++ translations...")
-
-        for key in _msg_keys:
-            _add_entries(key, domain)
-
-    commit()
-
-
-def get_locale_data(locale: str) -> tuple[str, str]:
-    if len(locale) != 2 and len(locale) != 5 or len(locale) == 5 and "_" not in locale:
-        raise I18nError(f"Invalid locale code: {locale}")
-
-    if "_" in locale:
-        locale = locale.split("_")[0]
-
-    try:
-        locale_data = json.loads((_package / "locales.json").read_text())
-    except json.JSONDecodeError:
-        raise I18nError("Failed to parse locales.json")
-
-    flags = locale_data.get("flags", {})
-    names = locale_data.get("names", {})
-    return flags.get(locale, "🇬🇧"), names.get(locale, "English")
+    update_translations("Flask++", __name__, domain)

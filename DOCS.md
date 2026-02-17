@@ -1,4 +1,4 @@
-# Flask++ v0.3.x Documentation
+# Flask++ v0.4.x Documentation
 
 ## Core
 
@@ -35,7 +35,7 @@ SERVER_NAME = localhost
 SECRET_KEY = supersecret
 
 [database]
-DATABASE_URL = sqlite:///appdata.db
+DATABASE_URI = sqlite:///appdata.db
 
 [redis]
 REDIS_URL = redis://localhost:6379
@@ -109,7 +109,7 @@ class DefaultConfig:
     # -------------------------------------------------
     # Flask-SQLAlchemy & Flask-Migrate
     # -------------------------------------------------
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///database.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "sqlite:///database.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # -------------------------------------------------
@@ -249,7 +249,7 @@ At first, you would create a new python package inside **project_root/modules**.
 
 #### Manifest
 
-For your module to be recognized by Flask++ you need to create a **manifest.json** file inside your module package. It has to contain at least one field named "version". The following version string formats are supported (they are not case-sensitive):
+For your module to be recognized by Flask++ you need to create a **manifest.json** file inside your module package. It has to contain at least two fields: "version" and "type". The following version string formats are supported (they are not case-sensitive):
 
 ```
 x
@@ -276,11 +276,22 @@ A fully qualified manifest file would then look like this:
   "name": "Module Name",
   "description": "This module does ...",
   "version": "0.1",
+  "type": "default",            // can be either "default" or "base"
+  // -> If you set the module type to "base", your module can be used to extend other modules.
+  // Base modules are not allowed to be registered. Do not enable them in your app config.
   "requires": {
     "fpp": ">=0.3.5",           // the minimum required version of Flask++
+    "packages": [               // PyPI packages that are required by your module
+      // e.g. "numpy", "pandas",
+      // ...
+      
+      // packages will be installed when your module gets installed
+    ],
     "modules": {                // other modules that are required by your module
       "module_id_01": "==0.2",
-      "module_id_02": "<0.7"
+      "module_id_02": "<0.7",
+      // -> Base module ids are also allowed here.
+      // In this case the module loader will check if a parent module that extends it is enabled.
     }
   }
 }
@@ -293,14 +304,16 @@ Inside your **\_\_init__.py** file, you create a `module: Module` variable and o
 ```python
 from flaskpp import Module
 from flaskpp.utils import enabled
+# from flaskpp.modules import import_base
 from flaskpp.exceptions import ModuleError
 
 module = Module(
     __file__,
     __name__,
-    
-    # Optional a list of required_extensions:
-    [
+    # extends=import_base("base_module_id"),
+    # -> You can use base modules as extensions for your module.
+    # import_base will return None if the module is not installed or not a base module.
+    # required_extensions=[
     #    "sqlalchemy",
     #    "socket",
     #    "babel",
@@ -310,14 +323,19 @@ module = Module(
     #    "cache",
     #    "api",
     #    "jwt_extended"
-    ],
-    
-    # And you can optionally turn off init_routes_on_enable (default is True):
-    False
+    # ],
+    # -> You can set Flask++'s pre-wired extensions as required.
+    # init_routes_on_enable=False, 
+    # -> You can optionally turn off automated route initialization when the module gets enabled.
+    # This could be especially useful, if you are working with socket i18n. (More in the later chapters.)
+    # allowed_for_home=False,
+    # -> You can disable the ability for your module to be the home module of the app.
+    # allow_frontend_engine=False,
+    # -> You can disable the frontend engine of your module if FRONTEND_ENGINE is set to 1.
 )
 
 # Now if you need to do stuff when your module gets enabled:
-@module.on_enable
+@module.on_enable   # This hook cannot be used by base modules.
 def on_enable(app: FlaskPP):
     # Check for required features, for example:
     if not enabled("FPP_PROCESSING"):
@@ -354,11 +372,15 @@ def init_handling(mod: Module):
     for file in _package.rglob("*.py"):
         if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
-        handler_name = file.stem
+
+        rel = file.relative_to(_package).with_suffix("")
+        handler_name = ".".join(rel.parts)
+
         handler = import_module(f"{mod.import_name}.handling.{handler_name}")
         handle_request = getattr(handler, "handle_request", None)
         if not handle_request:
             continue
+
         mod.handler(handler_name)(handle_request)
 ```
 
@@ -397,7 +419,7 @@ def init_routes(mod: Module):
 
 #### Config
 
-You can optionally create a **config.py** file inside your module package. There you can create your modules config class (like mentioned earlier in the ["Configuration" chapter](#configuration)) if you need:
+You can optionally create a **config.py** file inside your module package. There you can create your modules config class (like mentioned earlier in the ["Configuration" chapter](#configuration)) and add a config function for the `fpp setup` command if you need:
 
 ```python
 from flaskpp.app.config import register_config
@@ -408,6 +430,37 @@ from flaskpp.app.config import register_config
 )
 class ModuleConfig:
     # TODO: Overwrite default config values or provide your own
+    pass
+
+# Or if you are working with base and extending modules, you might do something like this:
+# base_module_package/config.py
+
+class BaseModuleConfig:
+    # ...
+    pass
+
+# extended_module_package/config.py
+from modules.base_module_package.config import BaseModuleConfig
+
+@register_config()
+class ExtendingModuleConfig(BaseModuleConfig):
+    # ...
+    pass
+
+def module_config():
+    # return {
+        # TODO: Write required config data (will be prompted by the setup if module is set to 1)
+        # -> Base module configs will be prompted together with their extending modules (parent), when it gets enabled.
+    
+        # "protected_MY_SECRET": token_hex(32),
+        # -> protected keys won't be prompted to the user
+    
+        # "default_FEATURE_KEY": "Hello World!",
+        # -> default keys will be prompted with their default value shown (and written with if input left empty)
+    
+        # "ADDITIONAL_DATA": "",
+        # -> simple config prompt without default value
+    # }
     pass
 ```
 
@@ -427,8 +480,15 @@ def init_models(mod: Module):
     for file in _package.rglob("*.py"):
         if file.stem == "__init__" or file.stem.startswith("noinit"):
             continue
-        import_module(f"{mod.import_name}.data.{file.stem}")
+        rel = file.relative_to(_package).with_suffix("")
+        import_module(f"{mod.import_name}.data.{".".join(rel.parts)}")
 ```
+
+This init file does not apply to base modules. Base modules can provide their own models, mixins or whatever data you would like to put into their data folder, but their data is meant to be used by their parents.
+
+#### Extracting
+
+The Module class provides a `module.extract()` function. This function is meant to be used by the `fpp modules install` command to extract the modules globals to the app's static / templates when the module gets installed. This is especially useful if your module needs to install global templates if it is not meant to be installed as a home module. To use this feature, you need to create an **extract** folder containing a **templates** and/or **static** folder inside your module package. Their contents will then be extracted to the app's static and templates folder.
 
 ### Working with Modules
 
@@ -520,12 +580,13 @@ The default features of the FppSocket class are its event_context (inspired by F
 
 ```python
 from flaskpp.app.extensions import socket
-from flaskpp.utils.debugger import log
+from flaskpp.utils.logging import log
+
 
 @socket.on("my_event")
 async def event(
-    sid: str,       # if you did not set sid_passing to False
-    payload: Any
+        sid: str,  # if you did not set sid_passing to False
+        payload: Any
 ):
     # here you can access:
     ctx = socket.event_context
@@ -606,7 +667,7 @@ Be aware that default events should not contain any "@" inside their names, beca
 
 These two switches come together. The **FPP_I18N_FALLBACK** switch only takes effect if the **EXT_BABEL** switch is enabled too. This is because Flask++ also provides its own Babel class called FppBabel, which extends `flask_babelplus.Babel`. Besides that, Flask++ also changes the internationalization process to fit into the Flask++ environment. That's why **EXT_BABEL** requires the **EXT_SQLALCHEMY** switch to be enabled. The Flask++ i18n system primarily stores translations inside the database and only uses the message catalogs as fallback.
 
-It also provides its own domain resolving system, which matches with the Flask++ module system. This is also where the **FPP_I18N_FALLBACK** switch comes into play, because it adds a fallback domain called "flaskpp" which contains default translation keys providing German and English translations, that are used by the Flask++ [app utility](#further-utilities).
+It also provides its own domain resolving system, which matches with the Flask++ module system. This is also where the **FPP_I18N_FALLBACK** switch comes into play, because it adds a fallback domain called "flaskpp" which contains default translation keys providing German and English translations that are used by the Flask++ [app utility](#further-utilities).
 
 Let's take a look at how you set up Babel for a specific module and how the fallback escalation works:
 
@@ -624,7 +685,10 @@ module = Module(
         "sqlalchemy",
         "socket",
         "babel"
-    ]
+    ],
+    False
+    # -> False to install translations before route setup.
+    # This is especially useful if you are using translations inside your route setup.
 )
 
 @module.on_enable
@@ -639,6 +703,9 @@ def enable(app: FlaskPP):
             # -> default is module.name
         )   # This will register the domain_name as the modules translation domain, pass it as a variable called "DOMAIN" to the
             # context processor and automatically cause _ and ngettext to primarily resolve translation keys from that domain.
+        
+    # Now you can enable routes after you registered your translations
+    module.init_routes()
 
 # If you now do something like this, for example:
 from flask import render_template_string
@@ -658,8 +725,8 @@ def example():
 And here is an example of what your **module_package/data/noinit_translations.py** file could look like:
 
 ```python
-from flaskpp.app.data import commit
-from flaskpp.app.data.babel import add_entry, get_entries, get_entry
+from flaskpp.app.data import commit, delete_model
+from flaskpp.app.data.babel import add_entry, get_entries
 
 _msg_keys = [
     "EXAMPLE_TITLE",
@@ -690,12 +757,15 @@ def setup_db(mod: Module):
             if key not in keys:
                 _add_entries(key, domain)
 
+        from .. import data
         for entry in entries:
             key = entry.key
-            if _translations_en[key] != entry.text:
-                entry.text = _translations_en[key]
-                entry_de = get_entry(key, "de", domain)
-                entry_de.text = _translations_de[key]
+            translations = getattr(data.noinit_translations, f"_translations_{entry.locale}", _translations_en)
+            try:
+                if translations[key] != entry.text:
+                    entry.text = translations[key]
+            except KeyError:
+                delete_model(entry, False)
     else:
         for key in _msg_keys:
             _add_entries(key, domain)
@@ -759,8 +829,26 @@ from flaskpp.app.extensions import db
     # priority=2
     # -> Like config priority, it should be a value inclusively between 1 and 10 and defaults to 1.
 )
-class MyUserMixin(db.Model):
+class MyUserMixin:
+    full_name = db.Column(db.String(64), nullable=False)
     bio = db.Column(db.String(512))
+    # ...
+```
+
+You can also create your own forms for FST. For that create a **forms.py** file inside your module package. If EXT_FST is set to 1, the FlaskPP class will load it automatically and like with the FST mixins create a combined form class that is passed to the `security.init_app()` function. So you can plug in FST forms like that:
+
+```python
+# module_package/forms.py
+from flaskpp.app.utils.fst import register_form     #, login_form
+from flaskpp.app.utils.translating import t         # this function is a promise that exists as dummy if EXT_BABEL = 0
+from wtforms import StringField, validators
+
+@register_form(
+    # priority=2
+    # -> you know the concept :)
+)
+class MyRegisterForm:
+    full_name = StringField(t("FULL_NAME_LABEL"), validators=validators.DataRequired())
     # ...
 ```
 

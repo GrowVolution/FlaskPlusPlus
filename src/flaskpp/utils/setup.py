@@ -3,7 +3,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import typer
 
-from flaskpp.utils import prompt_yes_no
+from flaskpp.utils import prompt_yes_no, sanitize_text
 from flaskpp.modules import generate_modlib
 
 counting_map = {
@@ -23,7 +23,7 @@ def base_config():
         },
 
         "database": {
-            "default_DATABASE_URL": "sqlite:///appdata.db",
+            "default_DATABASE_URI": "sqlite:///appdata.db",
         },
 
         "redis": {
@@ -40,9 +40,9 @@ def base_config():
 
         "mail": {
             "MAIL_SERVER": "",
-            "default_MAIL_PORT": 25,
-            "default_MAIL_USE_TLS": True,
-            "default_MAIL_USE_SSL": False,
+            "default_MAIL_PORT": 587,
+            "default_MAIL_USE_TLS": 1,
+            "MAIL_USE_SSL": "",
             "MAIL_USERNAME": "",
             "MAIL_PASSWORD": "",
             "default_MAIL_DEFAULT_SENDER": "noreply@example.com",
@@ -74,8 +74,42 @@ def base_config():
 
         "dev": {
             "DB_AUTOUPDATE": 0,
+            "I18N_AUTOUPDATE": 0,
         }
     }
+
+
+def setup_config(config: ConfigParser, base: dict, config_file_exists: bool = False) -> ConfigParser:
+    for k, v in base.items():
+        print_key = False
+
+        if k not in config:
+            print_key = True
+            config[k] = {}
+
+        for key, value in v.items():
+            if key.startswith("protected_"):
+                key = key.removeprefix("protected_")
+                if not (config_file_exists and config[k].get(key)):
+                    config[k][key] = str(value)
+                continue
+
+            if print_key:
+                typer.echo(typer.style(f"\n{k.upper()}", bold=True))
+                print_key = False
+
+            if key.startswith("default_"):
+                key = key.removeprefix("default_")
+                input_prompt = f"{key} ({value}): "
+            else:
+                input_prompt = f"{key}: "
+
+            val = sanitize_text(input(input_prompt)).strip()
+            if not val:
+                val = str(value)
+            config[k][key] = val
+
+    return config
 
 
 def welcome():
@@ -84,7 +118,7 @@ def welcome():
                " ------------------\n")
     typer.echo("Thank you for using our framework to build your own")
     typer.echo("Flask++ apps! We will try our best to get you ready")
-    typer.echo("within the next two minutes. 💚 Start a timer! 😉\n")
+    typer.echo("within the next two minutes. 💚  Start a timer! 😉\n")
     typer.echo("      " +
                typer.style(
                    "~ GrowVolution 2025 - MIT License ~",
@@ -109,6 +143,7 @@ def setup_app(app_number: int):
 
     app = app_name(app_number)
     conf = conf_path / f"{app}.conf"
+
     conf_exists = conf.exists()
     if conf_exists:
         config.read(conf)
@@ -116,26 +151,7 @@ def setup_app(app_number: int):
     typer.echo(typer.style("Okay, let's setup your app config.\n", fg=typer.colors.YELLOW, bold=True) +
                typer.style("Leave blank to stick with the defaults.", fg=typer.colors.MAGENTA))
 
-    for k, v in base_config().items():
-        if k not in config:
-            config[k] = {}
-        for key, value in v.items():
-            if key.startswith("protected_"):
-                key = key.removeprefix("protected_")
-                if not (conf_exists and config[k].get(key)):
-                    config[k][key] = str(value)
-                continue
-
-            if key.startswith("default_"):
-                key = key.removeprefix("default_")
-                input_prompt = f"{key} ({value}): "
-            else:
-                input_prompt = f"{key}: "
-
-            val = input(input_prompt).strip()
-            if not val:
-                val = str(value)
-            config[k][key] = val
+    config = setup_config(config, base_config(), conf_exists)
 
     with open(conf, "w") as f:
         config.write(f)
@@ -148,9 +164,9 @@ def setup_app(app_number: int):
     ) + "\n")
 
     register_app = prompt_yes_no(typer.style(
-        f"Do you want to register {app} as a service? (y/N): ",
-        fg=typer.colors.MAGENTA, bold=True
-    ) + "\n")
+        f"Do you want to register {app} as a service?",
+        fg=typer.colors.YELLOW, bold=True
+    ) + " (y/N): ")
 
     if register_app:
         from .service_registry import register

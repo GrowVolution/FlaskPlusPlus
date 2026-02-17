@@ -1,4 +1,3 @@
-from pathlib import Path
 import typer, subprocess, sys, os
 
 from flaskpp import _fpp_root
@@ -10,11 +9,14 @@ from flaskpp.fpp_node.fpp_vite import prepare_vite
 def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_node: bool, skip_vite: bool):
     typer.echo(typer.style("Creating default structure...", bold=True))
 
-    root = Path.cwd()
+    from flaskpp.cli import cwd
 
     if not skip_defaults:
         from flaskpp.utils.setup import conf_path
         conf_path.mkdir(exist_ok=True)
+
+        from flaskpp.modules import setup_globals
+        setup_globals()
 
         from flaskpp.modules import module_home
         module_home.mkdir(exist_ok=True)
@@ -23,48 +25,49 @@ def initialize(skip_defaults: bool, skip_babel: bool, skip_tailwind: bool, skip_
         service_path.mkdir(exist_ok=True)
 
 
-        templates = root / "templates"
+        templates = cwd / "templates"
         templates.mkdir(exist_ok=True)
-        static = root / "static"
+        static = cwd / "static"
         static.mkdir(exist_ok=True)
         css = static / "css"
         css.mkdir(exist_ok=True)
         (static / "js").mkdir(exist_ok=True)
         (static / "img").mkdir(exist_ok=True)
-        with open(root / "main.py", "w") as f:
-            f.write("""
-from flaskpp import FlaskPP
+        with open(cwd / "main.py", "w") as f:
+            f.write("""from flaskpp import FlaskPP
+from flask import render_template
             
 def create_app():
     app = FlaskPP(__name__)
-
+    
+    app.add_app_url_rule(
+        "/", endpoint="index",
+        view_func=lambda: render_template("app/index.html")
+    )
+    
     # TODO: Extend the Flask++ default setup with your own factory
 
     return app
 
 if __name__ == "__main__":
     app = create_app()
-    app.start()
-            """)
+    app.start()""")
 
-        (templates / "index.html").write_text("""
-{% extends "base_example.html" %}
+        (templates / "index.html").write_text("""{% extends "base_example.html" %}
 {# The base template is natively provided by Flask++. #}
 
 {% block title %}{{ _('Home') }}{% endblock %}
-{% block content %}
-    <div class="text-center">
-        <h2>{{ _('My new Flask++ Project') }}</h2>
-        <p>
-            {{ _('This is my brand new, super cool project.') }}
-            
-        </p>
-    </div>
-{% endblock %}
-        """)
 
-        (css / "tailwind_raw.css").write_text("""
-@import "tailwindcss" source("../../");
+{% block head %}{{ tailwind_main }}{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col min-h-[100dvh] items-center justify-center px-6 py-8">
+        <h2 class="text-2xl font-semibold">{{ _('My new Flask++ Project') }}</h2>
+        <p class="mt-2">{{ _('This is my brand new, super cool project.') }}</p>
+    </div>
+{% endblock %}""")
+
+        (css / "tailwind_raw.css").write_text("""@import "tailwindcss" source("../../");
 
 @source not "../../.venv";
 @source not "../../venv";
@@ -74,13 +77,27 @@ if __name__ == "__main__":
 
 @theme {
     /* ... */
-}
-        """)
+}""")
+
+        (cwd / ".gitignore").write_text("""[folders]
+__pycache__/
+app_configs/
+services/
+modules/
+instance/
+migrations/
+translations/
+dist/
+logs/
+
+[files]
+messages.pot
+tailwind.css""")
 
     if not skip_babel:
         typer.echo(typer.style("Generating default translations...", bold=True))
 
-        translations = root / "translations"
+        translations = cwd / "translations"
         translations.mkdir(exist_ok=True)
 
         pot = "messages.pot"

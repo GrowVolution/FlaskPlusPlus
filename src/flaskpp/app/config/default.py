@@ -1,5 +1,7 @@
 import os
 
+from flaskpp.utils import enabled
+
 
 class DefaultConfig:
     SERVER_NAME = os.getenv("SERVER_NAME")
@@ -11,7 +13,7 @@ class DefaultConfig:
     PROXY_FIX = False
     PROXY_COUNT = 1
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///database.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "sqlite:///database.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     RATELIMIT_ENABLED = True
@@ -37,8 +39,8 @@ class DefaultConfig:
 
     MAIL_SERVER = os.getenv("MAIL_SERVER", "localhost")
     MAIL_PORT = int(os.getenv("MAIL_PORT", 25))
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
+    MAIL_USE_TLS = enabled("MAIL_USE_TLS")
+    MAIL_USE_SSL = enabled("MAIL_USE_SSL")
     MAIL_USERNAME = os.getenv("MAIL_USERNAME")
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "noreply@example.com")
